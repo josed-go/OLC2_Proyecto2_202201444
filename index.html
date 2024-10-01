@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>OakLand</title>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gris: '#343a40',
+                        grist: '#4C4F53',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+    <!-- HEADER -->
+    <header class="flex-shrink-0">
+        <!-- OPCIONES MENU -->
+        <div class="w-full bg-gris">
+            <section class='flex flex-row justify-around divide-x divide-gray-500 h-full align-middle text-white content-center items-center'>
+                <p id="p-archivos" class='flex flex-col cursor-pointer text-lg text-center w-full h-full hover:bg-grist align-middle justify-center'>Archivo</p>
+                <p id="p-reportes" class='flex flex-col cursor-pointer text-lg text-center w-full h-full hover:bg-grist align-middle justify-center'>Reportes</p>
+                <p id="p-ejecutar" class='flex flex-col cursor-pointer text-lg text-center w-full h-full hover:bg-grist align-middle justify-center'>Ejecutar</p>
+            </section>
+
+            <div id="dropdown-archivos" class='bg-grist absolute z-50 w-1/3 flex flex-col text-white hidden'>
+                <button id="btn-nuevo"" class='hover:bg-gris h-8'>Nuevo archivo</button>
+                <button id="btn-abrir" class='hover:bg-gris h-8'>Abrir archivo</button>
+                <input id="fileInput" type='file' class='hover:bg-gris h-8 mx-auto hidden' multiple={false}/>
+                <button id="btn-guardar" class='hover:bg-gris h-8'>Guardar archivo</button>
+            </div>
+
+            <div id="dropdown-reportes" class="bg-grist absolute z-50 w-1/3 flex flex-col text-white hidden left-1/3">
+                <button id="btn-errores" class='hover:bg-gris h-8'>Errores</button>
+                <button id="btn-simbolos" class='hover:bg-gris h-8'>Tabla de simbolos</button>
+            </div>
+
+        </div>
+        <div class="flex flex-row w-full bg-gris text-white align-middle bord border-y border-gray-500">
+            <h1 class='text-center w-2/12 text-3xl font-bold p-1 pb-2'>OakLand</h1>
+            <p id="filename" class="text-lg my-auto"></p>
+        </div>
+    </header>
+    <div class="flex flex-row flex-grow w-full">
+        <!-- SIDEBAR -->
+        <div class='bg-gris w-2/12 h-full text-white border-r border-gray-500'>
+            <div class='flex flex-row align-middle gap-0 text-gray-100 hover:text-white hover:bg-grist w-full pl-4 cursor-pointer p-2'>
+                <button id="btn-archivos" class='text-left text-lg pl-2 font-semibold h-full w-full flex flex-row gap-2 align-middle'>
+                    <svg id="svg-archivos" class="my-auto -rotate-90" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                    Archivos
+                </button>
+            </div>
+            <div id="sidebar" class="flex flex-col pl-12 hidden">
+
+            </div>
+        </div>
+        <!-- CONTENT -->
+        <div class="flex flex-col w-10/12">
+            <div id="editor" class="flex-grow" style="height: 60%; width: 100%;"></div>
+            <p class='bg-gris text-white font-bold text-center h-7 align-middle border-y border-gray-500'>Consola</p>
+            <div id="consola" class="flex-grow" style="height: 30%; width: 100%;"></div>
+        </div>
+    </div>
+
+    <div class="relative flex justify-center items-center">
+        <div id="reporte-errores" class="w-full h-full bg-gray-900 bg-opacity-50 top-0 fixed sticky-0 hidden">
+            <div class="h-full py-48 px-4 flex justify-center items-center ">
+                <div class="w-2/5 dark:bg-gray-800 relative flex flex-col justify-center items-center bg-white py-16 px-4 ">
+                    <div class="mb-2">
+                        <h1 role="main" class="text-3xl dark:text-white lg:text-4xl font-semibold leading-7 lg:leading-9 text-center text-gray-800">Reporte de errores</h1>
+                    </div>
+                    <div class="w-full max-h-60 overflow-y-scroll">
+                        <table class="w-full text-left text-center">
+                            <thead>
+                            <tr class="border-b border-slate-300 bg-slate-50">
+                                <th class="p-2 font-bold leading-none text-slate-800 text-md">No.</th>
+                                <th class="p-4 font-bold leading-none text-slate-800 text-md">Descripción</th>
+                                <th class="p-2 font-bold leading-none text-slate-800 text-md">Linea</th>
+                                <th class="p-2 font-bold leading-none text-slate-800 text-md">Columna</th>
+                                <th class="p-4 font-bold leading-none text-slate-800 text-md">Tipo</th>
+                            </tr>
+                            </thead>
+                            <tbody id="tbody-errores">
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                    <button id="btn-cerrar-err" class="text-gray-800 dark:text-gray-400 absolute top-8 right-8 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800" aria-label="close">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18" stroke="currentColor" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M6 6L18 18" stroke="currentColor" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="reporte-simbolos" class="w-full h-full bg-gray-900 bg-opacity-50 top-0 fixed sticky-0 hidden">
+            <div class="h-full py-48 px-4 flex justify-center items-center ">
+                <div class="w-2/5 dark:bg-gray-800 relative flex flex-col justify-center items-center bg-white py-16 px-4 ">
+                    <div class="mb-2">
+                        <h1 role="main" class="text-3xl dark:text-white lg:text-4xl font-semibold leading-7 lg:leading-9 text-center text-gray-800">Reporte de simbolos</h1>
+                    </div>
+                    <div class="w-full max-h-60 overflow-y-scroll">
+                        <table class="w-full text-left text-center">
+                            <thead>
+                            <tr class="border-b border-slate-300 bg-slate-50">
+                                <th class="p-2 font-bold leading-none text-slate-800 text-md">ID</th>
+                                <th class="p-4 font-bold leading-none text-slate-800 text-md">Tipo Simbolo</th>
+                                <th class="p-2 font-bold leading-none text-slate-800 text-md">Tipo dato</th>
+                                <th class="p-2 font-bold leading-none text-slate-800 text-md">Ámbito</th>
+                                <th class="p-4 font-bold leading-none text-slate-800 text-md">Linea</th>
+                                <th class="p-4 font-bold leading-none text-slate-800 text-md">Columna</th>
+                            </tr>
+                            </thead>
+                            <tbody id="tbody-simbolos">
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                    <button id="btn-cerrar-simbolos" class="text-gray-800 dark:text-gray-400 absolute top-8 right-8 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800" aria-label="close">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18" stroke="currentColor" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M6 6L18 18" stroke="currentColor" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <template data-error>
+        <tr class="bg-slate-50">
+            <td class="p-1 border-b border-slate-200 py-5">
+            <p class="text-sm font-semibold text-slate-800" no-error></p>
+            </td>
+            <td class="p-4 border-b border-slate-200 py-5">
+            <p class="block font-semibold text-sm text-slate-800" description-error></p>
+            </td>
+            <td class="p-2 border-b border-slate-200 py-5">
+            <p class="text-sm font-semibold text-slate-800" linea-error></p>
+            </td>
+            <td class="p-2 border-b border-slate-200 py-5">
+            <p class="text-sm font-semibold text-slate-800" column-error></p>
+            </td>
+            <td class="p-4 border-b border-slate-200 py-5">
+            <p class="text-sm font-semibold text-slate-800" tipo-error></p>
+            </td>
+        </tr>
+    </template>
+    <template data-simbolo>
+        <tr class="bg-slate-50">
+            <td class="p-1 border-b border-slate-200 py-5">
+            <p class="text-sm font-semibold text-slate-800" id-simbolo></p>
+            </td>
+            <td class="p-4 border-b border-slate-200 py-5">
+            <p class="block font-semibold text-sm text-slate-800" tipo-simbolo></p>
+            </td>
+            <td class="p-2 border-b border-slate-200 py-5">
+            <p class="text-sm font-semibold text-slate-800" tipo-dato></p>
+            </td>
+            <td class="p-2 border-b border-slate-200 py-5">
+            <p class="text-sm font-semibold text-slate-800" ambito-simbolo></p>
+            </td>
+            <td class="p-4 border-b border-slate-200 py-5">
+            <p class="text-sm font-semibold text-slate-800" linea-simbolo></p>
+            </td>
+            <td class="p-4 border-b border-slate-200 py-5">
+            <p class="text-sm font-semibold text-slate-800" column-simbolo></p>
+            </td>
+        </tr>
+    </template>
+    <script type="module" src="index.js"></script>
+</body>
+</html>
