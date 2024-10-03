@@ -2,8 +2,8 @@ import * as monaco from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.50.0/+esm'
 import { CompiladorVisitor } from './compilador/compilador.js'
 
 import { parse } from './compilador/gramatica.js'
-//import { IntepreteVisitor } from './analizador/interprete.js'
-//import { ErrorSemantico } from './analizador/sentTransferencia.js'
+import { IntepreteVisitor } from './compilador/interprete/interprete.js'
+import { ErrorSemantico } from './compilador/interprete/sentTransferencia.js'
 
 
 const btn_archivos = document.getElementById('btn-archivos')
@@ -63,13 +63,25 @@ p_ejecutar.addEventListener('click', () => {
     // simbolos.length = 0
     try {
         const sentencias = parse(entrada)
+
+        /*const interprete = new IntepreteVisitor()
+        sentencias.forEach(sentencia => {
+            try {
+                sentencia.accept(interprete)
+            } catch (error) {
+                if(error instanceof ErrorSemantico) {
+                    err = err +"\n"+ error.message + ' en linea ' + error.location.start.line + ' column ' + error.location.start.column
+                    errores.push(error)
+                }
+            }
+        })*/
     
-        const interprete = new CompiladorVisitor()
+        const compilador = new CompiladorVisitor()
         console.log({sentencias})
         sentencias.forEach(sentencia => {
             try {
                 
-                sentencia.accept(interprete)
+                sentencia.accept(compilador)
             } catch (error) {
                 console.log(error)
                 /*if(error instanceof ErrorSemantico) {
@@ -79,7 +91,7 @@ p_ejecutar.addEventListener('click', () => {
                 }*/
             }
         })
-        consola.setValue(interprete.codigo.toString())
+        consola.setValue(compilador.codigo.toString())
 
         /*if(obtenerErrores() != "") {
             consola.setValue(consola.getValue()+'\nERRORES ENCONTRADOS\n'+ obtenerErrores())

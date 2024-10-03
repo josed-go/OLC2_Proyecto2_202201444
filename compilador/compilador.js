@@ -36,29 +36,86 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.popObject(reg.T0)
         this.codigo.popObject(reg.T1)
 
+        let tipo = ""
+
         switch (node.op) {
             case '+':
                 this.codigo.add(reg.T0, reg.T0, reg.T1)
                 this.codigo.push(reg.T0)
+                tipo = "int"
                 break
             case '-':
                 this.codigo.sub(reg.T0, reg.T1, reg.T0)
                 this.codigo.push(reg.T0)
+                tipo = "int"
                 break
             case '*':
                 this.codigo.mul(reg.T0, reg.T0, reg.T1)
                 this.codigo.push(reg.T0)
+                tipo = "int"
                 break
             case '/':
                 this.codigo.div(reg.T0, reg.T1, reg.T0)
                 this.codigo.push(reg.T0)
+                tipo = "int"
                 break
             case '%':
                 this.codigo.rem(reg.T0, reg.T1, reg.T0)
                 this.codigo.push(reg.T0)
+                tipo = "int"
+                break
+            case '==':
+                this.codigo.xor(reg.T0, reg.T0, reg.T1)
+                this.codigo.seqz(reg.T0, reg.T0)
+                this.codigo.push(reg.T0)
+                tipo = "boolean"
+                break
+            case '!=':
+                this.codigo.xor(reg.T0, reg.T0, reg.T1)
+                this.codigo.snez(reg.T0, reg.T0)
+                this.codigo.push(reg.T0)
+                tipo = "boolean"
+                break
+
+            case '>':
+                this.codigo.slt(reg.T0, reg.T0, reg.T1)
+                this.codigo.push(reg.T0)
+                tipo = "boolean"
+                break
+
+            case '>=':
+                this.codigo.slt(reg.T0, reg.T1, reg.T0)
+                this.codigo.xori(reg.T0, reg.T0, 1)
+                this.codigo.push(reg.T0)
+                tipo = "boolean"
+                break
+
+            case '<':
+                this.codigo.slt(reg.T0, reg.T1, reg.T0)
+                this.codigo.push(reg.T0)
+                tipo = "boolean"
+                break
+                
+            case '<=':
+                this.codigo.slt(reg.T0, reg.T0, reg.T1)
+                this.codigo.xori(reg.T0, reg.T0, 1)
+                this.codigo.push(reg.T0)
+                tipo = "boolean"
+                break
+
+            case '&&':
+                this.codigo.and(reg.T0, reg.T0, reg.T1)
+                this.codigo.push(reg.T0)
+                tipo = "boolean"
+                break
+
+            case '||':
+                this.codigo.or(reg.T0, reg.T0, reg.T1)
+                this.codigo.push(reg.T0)
+                tipo = "boolean"
                 break
         }
-        this.codigo.pushObject({ tipo: "int", length: 4 })
+        this.codigo.pushObject({ tipo, length: 4 })
         this.codigo.comentario(`Fin Operacion: ${node.op}`)
     }
 
@@ -77,6 +134,13 @@ export class CompiladorVisitor extends BaseVisitor {
                 this.codigo.sub(reg.T0, reg.T1, reg.T0)
                 this.codigo.push(reg.T0)
                 this.codigo.pushObject({ tipo: "int", length: 4 })
+                break
+
+            case '!':
+                this.codigo.li(reg.T1, 1)
+                this.codigo.xor(reg.T0, reg.T0, reg.T1)
+                this.codigo.push(reg.T0)
+                this.codigo.pushObject({ tipo: "boolean", length: 4 })
                 break
         }
 
@@ -105,10 +169,92 @@ export class CompiladorVisitor extends BaseVisitor {
                 this.codigo.printInt()
             } else if(object.tipo === "string") {
                 this.codigo.printString()
+            } else if(object.tipo === "boolean") {
+                this.codigo.printBoolean()
             }
         })
 
         this.codigo.comentario(`Fin Print`)
         
+    }
+
+    /**
+     * @type { BaseVisitor['visitDeclaracionVar'] }
+    */
+    visitDeclaracionVar(node) {
+        this.codigo.comentario(`Declaracion variable: ${node.id}`)
+
+        node.exp.accept(this)
+        this.codigo.tagObject(node.id)
+
+        this.codigo.comentario(`Fin Declaracion variable: ${node.id}`)
+    }
+
+    /**
+     * @type { BaseVisitor['visitDeclaracionVarTipo'] }
+    */
+    visitDeclaracionVarTipo(node) {
+        this.codigo.comentario(`Declaracion variable: ${node.id}`)
+
+        node.exp.accept(this)
+        this.codigo.tagObject(node.id)
+
+        this.codigo.comentario(`Fin Declaracion variable: ${node.id}`)
+    }
+
+    /**
+     * @type { BaseVisitor['visitAsignacion'] }
+    */
+    visitAsignacion(node) {
+        this.codigo.comentario(`Asignacion variable: ${node.id}`)
+        node.asign.accept(this)
+        const valueObject = this.codigo.popObject(reg.T0)
+        const [offset, variableO] = this.codigo.getObject(node.id)
+
+        this.codigo.addi(reg.T1, reg.SP, offset)
+
+        this.codigo.sw(reg.T0, reg.T1)
+
+        this.codigo.push(reg.T0)
+
+        this.codigo.pushObject(valueObject)
+
+        this.codigo.comentario(`Fin Asignacion variable: ${node.id}`)
+    }
+
+    /**
+     * @type { BaseVisitor['visitReferenciaVar'] }
+    */
+    visitReferenciaVar(node){
+        this.codigo.comentario(`Referencia variable: ${node.id}: ${JSON.stringify(this.codigo.stackObject)}`)
+
+        const [offset, variableO] = this.codigo.getObject(node.id)
+
+        this.codigo.addi(reg.T0, reg.SP, offset)
+        this.codigo.lw(reg.T1, reg.T0)
+        this.codigo.push(reg.T1)
+        this.codigo.pushObject({...variableO, id: undefined})
+
+        this.codigo.comentario(`Fin Referencia variable: ${node.id}: ${JSON.stringify(this.codigo.stackObject)}`)
+    }
+
+    /**
+     * @type { BaseVisitor['visitBloque'] }
+    */
+    visitBloque(node) {
+        this.codigo.comentario(`Bloque`)
+    
+        this.codigo.newScope()
+
+        node.dcls.forEach(stmt => stmt.accept(this))
+
+        this.codigo.comentario("Reduciendo pila")
+        const bytesAEliminar = this.codigo.endScope()
+
+        if(bytesAEliminar > 0) {
+            this.codigo.addi(reg.SP, reg.SP, bytesAEliminar)
+        }
+
+        this.codigo.comentario(`Fin Bloque`)
     }
 }

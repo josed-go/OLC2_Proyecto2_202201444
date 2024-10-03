@@ -22,6 +22,7 @@ export class Generador {
     constructor() {
         this.instrucciones = []
         this.stackObject = []
+        this.depth = 0
     }
 
     add(rd, rs1, rs2) {
@@ -46,6 +47,50 @@ export class Generador {
 
     rem(rd, rs1, rs2) {
         this.instrucciones.push(new Instruccion("rem", rd, rs1, rs2))
+    }
+
+    xor(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion("xor", rd, rs1, rs2))
+    }
+
+    xori(rd, rs1, inm) {
+        this.instrucciones.push(new Instruccion("xori", rd, rs1, inm))
+    }
+
+    or(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion("or", rd, rs1, rs2))
+    }
+
+    and(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion("and", rd, rs1, rs2))
+    }
+
+    slt(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion("slt", rd, rs1, rs2))
+    }
+
+    bne(rs1, rs2, inm) {
+        this.instrucciones.push(new Instruccion("bne", rs1, rs2, inm))
+    }
+
+    blt(rs1, rs2, inm) {
+        this.instrucciones.push(new Instruccion("blt", rs1, rs2, inm))
+    }
+
+    bge(rs1, rs2, inm) {
+        this.instrucciones.push(new Instruccion("bge", rs1, rs2, inm))
+    }
+
+    seq(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion("seq", rd, rs1, rs2))
+    }
+
+    seqz(rd, rs1) {
+        this.instrucciones.push(new Instruccion("seqz", rd, rs1))
+    }
+
+    snez(rd, rs1) {
+        this.instrucciones.push(new Instruccion("snez", rd, rs1))
     }
 
     sw(rs1, rs2, inm = 0) {
@@ -89,6 +134,21 @@ export class Generador {
         }
     }
 
+    printBoolean(rd = reg.A0) {
+        if (rd !== reg.A0) {
+            this.push(reg.A0)
+            this.add(reg.A0, rd, reg.ZERO)
+        }
+
+        this.li(reg.A7, 1)
+        this.ecall()
+
+        if (rd !== reg.A0) {
+            this.pop(reg.A0)
+        }
+
+    }
+
     printString(rd = reg.A0) {
         if(rd !== reg.A0) {
             this.push(reg.A0)
@@ -124,15 +184,28 @@ export class Generador {
 
             case "string":
                 
-                const stringArray = stringToRegistro(object.valor).reverse()
+                const stringArray = stringToRegistro(object.valor)
+
+                this.comentario(`Guardando string: ${object.valor}`)
+                this.addi(reg.T0, reg.HP, 4)
+
+                this.push(reg.T0)
 
                 stringArray.forEach(bloque => {
                     this.li(reg.T0, bloque)
-                    this.push(reg.T0)
+                    // this.push(reg.T0)
+                    this.addi(reg.HP, reg.HP, 4)
+                    this.sw(reg.T0, reg.HP)
                 });
 
-                length = stringArray.length * 4
+                length = 4
 
+                break
+
+            case "boolean":
+                this.li(reg.T0, object.valor ? 1 : 0)
+                this.push()
+                length = 4
                 break
         
             default:
@@ -141,7 +214,8 @@ export class Generador {
 
         this.pushObject({
             length,
-            tipo: object.tipo
+            tipo: object.tipo,
+            depth: this.depth
         })
     }
 
@@ -159,8 +233,13 @@ export class Generador {
                 break;
 
             case "string":
-                this.addi(rd, reg.SP, 0)
-                this.addi(reg.SP, reg.SP, object.length)
+                // this.addi(rd, reg.SP, 0)
+                // this.addi(reg.SP, reg.SP, object.length)
+                this.pop(rd)
+                break
+
+            case "boolean":
+                this.pop(rd)
                 break
         
             default:
@@ -169,8 +248,49 @@ export class Generador {
         return object
     }
 
+    // ENTORNO
+    newScope() {
+        this.depth++
+    }
+
+    endScope() {
+        let byteOffset = 0
+        for(let i = this.stackObject.length - 1; i >= 0; i--) {
+            if(this.stackObject[i].depth === this.depth) {
+                byteOffset += this.stackObject[i].length
+                this.stackObject.pop()
+            } else {
+                break
+            }
+        }
+        this.depth--
+        return byteOffset
+    }
+
+
+    tagObject(id) {
+        this.stackObject[this.stackObject.length - 1].id = id
+    }
+
+    getObject(id) {
+        let byteOffset = 0
+
+        for(let i = this.stackObject.length - 1; i >= 0; i--) {
+            if(this.stackObject[i].id === id) {
+                return [byteOffset, this.stackObject[i]]
+            }
+
+            byteOffset += this.stackObject[i].length
+        }
+
+        throw new Error(`Variable ${id} no encontrada`)
+    }
+
     toString() {
         this.endProgram()
-        return `.text\nmain:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`
+        return `.data\nheap:\n.text\n
+# Inicializando el Heap Pointer (HP)
+la ${reg.HP}, heap
+main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`
     }
 }
