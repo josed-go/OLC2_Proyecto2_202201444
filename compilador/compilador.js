@@ -91,7 +91,9 @@ export class CompiladorVisitor extends BaseVisitor {
                 break
 
             case '<':
+                console.log("111",this.codigo.stackObject)
                 this.codigo.slt(reg.T0, reg.T1, reg.T0)
+                console.log("222", this.codigo.stackObject)
                 this.codigo.push(reg.T0)
                 tipo = "boolean"
                 break
@@ -171,9 +173,12 @@ export class CompiladorVisitor extends BaseVisitor {
                 this.codigo.printString()
             } else if(object.tipo === "boolean") {
                 this.codigo.printBoolean()
+            } else if(object.tipo === "char") {
+                this.codigo.printChar()
             }
         })
 
+        this.codigo.saltoLinea()
         this.codigo.comentario(`Fin Print`)
         
     }

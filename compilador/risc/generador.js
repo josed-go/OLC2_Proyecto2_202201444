@@ -23,6 +23,7 @@ export class Generador {
         this.instrucciones = []
         this.stackObject = []
         this.depth = 0
+        this.contLabel = 0
     }
 
     add(rd, rs1, rs2) {
@@ -105,6 +106,22 @@ export class Generador {
         this.instrucciones.push(new Instruccion("li", rd, inm))
     }
 
+    beqz(rs1, label) {
+        this.instrucciones.push(new Instruccion('beqz', rs1, label))
+    }
+
+    j(label) {
+        this.instrucciones.push(new Instruccion('j', label))
+    }
+
+    label(label) {
+        this.instrucciones.push(new Instruccion(label + ':'))
+    }
+
+    la(rd, label) {
+        this.instrucciones.push(new Instruccion('la', rd, label))
+    }
+
     push(rd = reg.T0) {
         this.addi(reg.SP, reg.SP, -4)
         this.sw(rd, reg.SP)
@@ -122,7 +139,7 @@ export class Generador {
     printInt(rd = reg.A0) {
 
         if(rd !== reg.A0) {
-            this.push(r.A0)
+            this.push(reg.A0)
             this.add(reg.A0, rd, reg.ZERO)
         }
 
@@ -135,15 +152,43 @@ export class Generador {
     }
 
     printBoolean(rd = reg.A0) {
+        const labelNum = this.contLabel++
+        
         if (rd !== reg.A0) {
+            this.push(reg.A0)
+            this.add(reg.T0, rd, reg.ZERO)
+        } else {
+            this.add(reg.T0, rd, reg.ZERO)
+        }
+
+        this.beqz(reg.T0, `print_false_${labelNum}`)
+        
+        this.la(reg.A0, "val_true")
+        this.j(`print_str_${labelNum}`)
+        
+        this.label(`print_false_${labelNum}`)
+        this.la(reg.A0, "val_false")
+        
+        this.label(`print_str_${labelNum}`)
+        this.li(reg.A7, 4)
+        this.ecall()
+
+        if (rd !== reg.A0) {
+            this.pop(reg.A0)
+        }
+
+    }
+
+    printChar(rd = reg.A0) {
+        if(rd !== reg.A0) {
             this.push(reg.A0)
             this.add(reg.A0, rd, reg.ZERO)
         }
 
-        this.li(reg.A7, 1)
+        this.li(reg.A7, 11)
         this.ecall()
 
-        if (rd !== reg.A0) {
+        if(rd !== reg.A0) {
             this.pop(reg.A0)
         }
 
@@ -177,6 +222,7 @@ export class Generador {
 
         switch (object.tipo) {
             case "int":
+                console.log("aqui1", object)
                 this.li(reg.T0, object.valor)
                 this.push()
                 length = 4
@@ -203,7 +249,13 @@ export class Generador {
                 break
 
             case "boolean":
+                console.log("HEREEE", object)
                 this.li(reg.T0, object.valor ? 1 : 0)
+                this.push()
+                length = 4
+                break
+            case "char":
+                this.li(reg.T0, object.valor.charCodeAt(0))
                 this.push()
                 length = 4
                 break
@@ -239,6 +291,10 @@ export class Generador {
                 break
 
             case "boolean":
+                this.pop(rd)
+                break
+
+            case "char":
                 this.pop(rd)
                 break
         
@@ -286,9 +342,17 @@ export class Generador {
         throw new Error(`Variable ${id} no encontrada`)
     }
 
+    saltoLinea(){
+        this.li(reg.A0, 10)
+        this.li(reg.A7, 11)
+        this.ecall()
+    }
+
     toString() {
         this.endProgram()
-        return `.data\nheap:\n.text\n
+        return `.data
+    str_true: .string "true\\n"
+    str_false: .string "false\\n"\nheap:\n.text\n
 # Inicializando el Heap Pointer (HP)
 la ${reg.HP}, heap
 main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`
