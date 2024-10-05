@@ -21,3 +21,17 @@ export const stringToRegistro = (str) => {
 
     return resultado
 }
+
+export const stringA1Byte = (str) => {
+    const resultado = []
+    let index = 0
+
+    while(index < str.length) {
+        resultado.push(str.charCodeAt(index))
+        index++
+    }
+
+    resultado.push(0)
+
+    return resultado
+}

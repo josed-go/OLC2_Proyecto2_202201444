@@ -30,13 +30,71 @@ export class CompiladorVisitor extends BaseVisitor {
     */
     visitOperacionBinaria(node) {
         this.codigo.comentario(`Operacion: ${node.op}`)
+
+        if(node.op === '&&') {
+            node.izq.accept(this)
+            this.codigo.popObject(reg.T0)
+
+            const labelFalse = this.codigo.getLabel()
+            const labelEnd = this.codigo.getLabel()
+
+            this.codigo.beq(reg.T0, reg.ZERO, labelFalse)
+
+            node.der.accept(this)
+            this.codigo.popObject(reg.T0)
+            this.codigo.beq(reg.T0, reg.ZERO, labelFalse)
+
+            this.codigo.li(reg.T0, 1)
+            this.codigo.push(reg.T0)
+            this.codigo.j(labelEnd)
+            this.codigo.addLabel(labelFalse)
+            this.codigo.li(reg.T0, 0)
+            this.codigo.push(reg.T0)
+            this.codigo.addLabel(labelEnd)
+            this.codigo.pushObject({ tipo: "boolean", length: 4 })
+
+            return
+        }
+
+        if(node.op === '||') {
+            node.izq.accept(this)
+            this.codigo.popObject(reg.T0)
+
+            const labelTrue = this.codigo.getLabel()
+            const labelEnd = this.codigo.getLabel()
+
+            this.codigo.bne(reg.T0, reg.ZERO, labelTrue)
+            node.der.accept(this)
+
+            this.codigo.popObject(reg.T0)
+            this.codigo.bne(reg.T0, reg.ZERO, labelTrue)
+
+            this.codigo.li(reg.T0, 0)
+            this.codigo.push(reg.T0)
+            this.codigo.j(labelEnd)
+            this.codigo.addLabel(labelTrue)
+            this.codigo.li(reg.T0, 1)
+            this.codigo.push(reg.T0)
+            this.codigo.addLabel(labelEnd)
+            this.codigo.pushObject({ tipo: "boolean", length: 4 })
+            return
+        }
+
         node.izq.accept(this)
         node.der.accept(this)
 
-        this.codigo.popObject(reg.T0)
-        this.codigo.popObject(reg.T1)
+        const der = this.codigo.popObject(reg.T0)
+        const izq = this.codigo.popObject(reg.T1)
 
         let tipo = ""
+
+        if(izq.tipo === "string" && der.tipo === "string") {
+            this.codigo.add(reg.A0, reg.ZERO, reg.T1)
+            this.codigo.add(reg.A1, reg.ZERO, reg.T0)
+            this.codigo.callBuiltin("concatenacionString")
+            this.codigo.pushObject({ tipo: "string", length: 4})
+            return
+        }
 
         switch (node.op) {
             case '+':
@@ -105,7 +163,7 @@ export class CompiladorVisitor extends BaseVisitor {
                 tipo = "boolean"
                 break
 
-            case '&&':
+            /*case '&&':
                 this.codigo.and(reg.T0, reg.T0, reg.T1)
                 this.codigo.push(reg.T0)
                 tipo = "boolean"
@@ -115,7 +173,7 @@ export class CompiladorVisitor extends BaseVisitor {
                 this.codigo.or(reg.T0, reg.T0, reg.T1)
                 this.codigo.push(reg.T0)
                 tipo = "boolean"
-                break
+                break*/
         }
         this.codigo.pushObject({ tipo, length: 4 })
         this.codigo.comentario(`Fin Operacion: ${node.op}`)
@@ -176,6 +234,7 @@ export class CompiladorVisitor extends BaseVisitor {
             } else if(object.tipo === "char") {
                 this.codigo.printChar()
             }
+            this.codigo.espacio()
         })
 
         this.codigo.saltoLinea()
@@ -261,5 +320,45 @@ export class CompiladorVisitor extends BaseVisitor {
         }
 
         this.codigo.comentario(`Fin Bloque`)
+    }
+
+    /**
+     * @type { BaseVisitor['visitIf'] }
+    */
+
+    visitIf(node) {
+        this.codigo.comentario(`If`)
+
+        this.codigo.comentario(`Condicion`)
+        node.cond.accept(this)
+        this.codigo.popObject(reg.T0)
+        this.codigo.comentario(`Fin Condicion`)
+
+
+        const tieneElse = !!node.sentF
+
+        if(tieneElse) {
+            const elseLabel = this.codigo.getLabel()
+            const endIf = this.codigo.getLabel()
+
+            this.codigo.beq(reg.T0, reg.ZERO, elseLabel)
+            this.codigo.comentario("Sentencias verdadera")
+            node.sent.accept(this)
+            this.codigo.j(endIf)
+            this.codigo.addLabel(elseLabel)
+            this.codigo.comentario("Sentencias falsa")
+            node.sentF.accept(this)
+            this.codigo.addLabel(endIf)
+        }else {
+            const endIf = this.codigo.getLabel()
+
+            this.codigo.beq(reg.T0, reg.ZERO, endIf)
+            this.codigo.comentario("Sentencias verdadera")
+            node.sent.accept(this)
+            this.codigo.addLabel(endIf)
+        }
+
+        
+        this.codigo.comentario(`Fin If`)
     }
 }

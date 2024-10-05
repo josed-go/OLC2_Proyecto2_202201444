@@ -1,5 +1,6 @@
+import { builtins } from "./builtins.js";
 import { registers as reg } from "./registros.js";
-import { stringToRegistro } from "./utilidades.js";
+import { stringA1Byte, stringToRegistro } from "./utilidades.js";
 
 class Instruccion {
     constructor(instruccion, rd, rs1, rs2) {
@@ -24,6 +25,7 @@ export class Generador {
         this.stackObject = []
         this.depth = 0
         this.contLabel = 0
+        this._usedBuiltins = new Set()
     }
 
     add(rd, rs1, rs2) {
@@ -70,16 +72,16 @@ export class Generador {
         this.instrucciones.push(new Instruccion("slt", rd, rs1, rs2))
     }
 
-    bne(rs1, rs2, inm) {
-        this.instrucciones.push(new Instruccion("bne", rs1, rs2, inm))
+    bne(rs1, rs2, label) {
+        this.instrucciones.push(new Instruccion("bne", rs1, rs2, label))
     }
 
-    blt(rs1, rs2, inm) {
-        this.instrucciones.push(new Instruccion("blt", rs1, rs2, inm))
+    blt(rs1, rs2, label) {
+        this.instrucciones.push(new Instruccion("blt", rs1, rs2, label))
     }
 
-    bge(rs1, rs2, inm) {
-        this.instrucciones.push(new Instruccion("bge", rs1, rs2, inm))
+    bge(rs1, rs2, label) {
+        this.instrucciones.push(new Instruccion("bge", rs1, rs2, label))
     }
 
     seq(rd, rs1, rs2) {
@@ -98,13 +100,27 @@ export class Generador {
         this.instrucciones.push(new Instruccion("sw", rs1, `${inm}(${rs2})`))
     }
 
+    sb(rs1, rs2, inm = 0) {
+        this.instrucciones.push(new Instruccion("sb", rs1, `${inm}(${rs2})`))
+    }
+
     lw(rd, rs1, inm = 0) {
         this.instrucciones.push(new Instruccion("lw", rd, `${inm}(${rs1})`))
+    }
+
+    lb(rd, rs1, inm = 0) {
+        this.instrucciones.push(new Instruccion("lb", rd, `${inm}(${rs1})`))
     }
 
     li(rd, inm) {
         this.instrucciones.push(new Instruccion("li", rd, inm))
     }
+
+    beq(rs1, rs2, label) {
+        this.instrucciones.push(new Instruccion('beq', rs1, rs2, label))
+    }
+
+    b
 
     beqz(rs1, label) {
         this.instrucciones.push(new Instruccion('beqz', rs1, label))
@@ -114,8 +130,26 @@ export class Generador {
         this.instrucciones.push(new Instruccion('j', label))
     }
 
+    jal(label) {
+        this.instrucciones.push(new Instruccion('jal', label))
+    }
+
+    ret() {
+        this.instrucciones.push(new Instruccion('ret'))
+    }
+
     label(label) {
         this.instrucciones.push(new Instruccion(label + ':'))
+    }
+
+    addLabel(label) {
+        label = label || this.getLabel()
+        this.instrucciones.push(new Instruccion(`${label}:`))
+        return label
+    }
+
+    getLabel(){
+        return `L_${this.contLabel++}`
     }
 
     la(rd, label) {
@@ -134,6 +168,14 @@ export class Generador {
 
     ecall() {
         this.instrucciones.push(new Instruccion("ecall"))
+    }
+
+    callBuiltin(builtin) {
+        if(!builtins[builtin]) {
+            throw new Error(`Builtin ${builtin} no encontrado`)
+        }
+        this._usedBuiltins.add(builtin)
+        this.jal(builtin)
     }
 
     printInt(rd = reg.A0) {
@@ -230,18 +272,21 @@ export class Generador {
 
             case "string":
                 
-                const stringArray = stringToRegistro(object.valor)
+                const stringArray = stringA1Byte(object.valor)
 
                 this.comentario(`Guardando string: ${object.valor}`)
-                this.addi(reg.T0, reg.HP, 4)
+                // this.addi(reg.T0, reg.HP, 4)
 
-                this.push(reg.T0)
+                // this.push(reg.T0)
+                this.push(reg.HP)
 
-                stringArray.forEach(bloque => {
-                    this.li(reg.T0, bloque)
+                stringArray.forEach(char => {
+                    this.li(reg.T0, char)
                     // this.push(reg.T0)
-                    this.addi(reg.HP, reg.HP, 4)
-                    this.sw(reg.T0, reg.HP)
+                    // this.addi(reg.HP, reg.HP, 4)
+                    // this.sw(reg.T0, reg.HP)
+                    this.sb(reg.T0, reg.HP)
+                    this.addi(reg.HP, reg.HP, 1)
                 });
 
                 length = 4
@@ -348,11 +393,26 @@ export class Generador {
         this.ecall()
     }
 
+    espacio(){
+        this.li(reg.A0, 32)
+        this.li(reg.A7, 11)
+        this.ecall()
+    }
+
     toString() {
+        this.comentario("Fin del programa")
         this.endProgram()
+        this.comentario("Builtins")
+
+        Array.from(this._usedBuiltins).forEach(builtin => {
+            this.addLabel(builtin)
+            builtins[builtin](this)
+            this.ret()
+        })
+
         return `.data
-    str_true: .string "true\\n"
-    str_false: .string "false\\n"\nheap:\n.text\n
+    val_true: .string "true"
+    val_false: .string "false"\nheap:\n.text\n
 # Inicializando el Heap Pointer (HP)
 la ${reg.HP}, heap
 main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`
