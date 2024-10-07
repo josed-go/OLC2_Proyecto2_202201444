@@ -89,7 +89,7 @@ export class CompiladorVisitor extends BaseVisitor {
 
         let tipo = ""
 
-        if(izq.tipo === "string" && der.tipo === "string") {
+        if(izq.tipo === "string" && der.tipo === "string" && node.op === "+") {
             this.codigo.add(reg.A0, reg.ZERO, reg.T1)
             this.codigo.add(reg.A1, reg.ZERO, reg.T0)
             this.codigo.callBuiltin("concatenacionString")
