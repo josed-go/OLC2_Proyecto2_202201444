@@ -32,7 +32,7 @@ export class CompiladorVisitor extends BaseVisitor {
     visitOperacionBinaria(node) {
         this.codigo.comentario(`Operacion: ${node.op}`)
 
-        if(node.op === '&&') {
+        /*if(node.op === '&&') {
             node.izq.accept(this)
             this.codigo.popObject(reg.T0)
 
@@ -79,7 +79,7 @@ export class CompiladorVisitor extends BaseVisitor {
             this.codigo.addLabel(labelEnd)
             this.codigo.pushObject({ tipo: "boolean", length: 4 })
             return
-        }
+        }*/
 
         /*if(node.op === '==') {
             node.izq.accept(this)
@@ -197,7 +197,7 @@ export class CompiladorVisitor extends BaseVisitor {
                 tipo = "int"
                 break
 
-            /*case '&&':
+            case '&&':
                 this.codigo.and(reg.T0, reg.T0, reg.T1)
                 this.codigo.push(reg.T0)
                 tipo = "boolean"
@@ -207,7 +207,7 @@ export class CompiladorVisitor extends BaseVisitor {
                 this.codigo.or(reg.T0, reg.T0, reg.T1)
                 this.codigo.push(reg.T0)
                 tipo = "boolean"
-                break*/
+                break
         }
         this.codigo.pushObject({ tipo, length: 4 })
         this.codigo.comentario(`Fin Operacion: ${node.op}`)
@@ -458,5 +458,33 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.addLabel(endWhile)
 
         this.codigo.comentario(`Fin While`)
+    }
+
+    /**
+     * @type { BaseVisitor['visitFor'] }
+    */
+    visitFor(node) {
+        this.codigo.comentario(`For`)
+        const startFor = this.codigo.getLabel()
+        const endFor = this.codigo.getLabel()
+
+        node.decl.accept(this)
+
+        this.codigo.addLabel(startFor)
+
+        this.codigo.comentario(`Condicion`)
+        node.cond.accept(this)
+        this.codigo.popObject(reg.T0)
+        this.codigo.comentario(`Fin Condicion`)
+
+        this.codigo.beq(reg.T0, reg.ZERO, endFor)
+        this.codigo.comentario("Sentencias")
+        node.sent.accept(this)
+        node.incre.accept(this)
+        this.codigo.j(startFor)
+        this.codigo.addLabel(endFor)
+
+        this.codigo.comentario(`Fin For`)
+        
     }
 }
