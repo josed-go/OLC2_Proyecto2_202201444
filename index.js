@@ -58,13 +58,14 @@ const consola = monaco.editor.create(
 
 p_ejecutar.addEventListener('click', () => {
     const entrada = editor.getValue()
-    // var err = ""
-    // errores.length = 0
-    // simbolos.length = 0
+    var err = ""
+    errores.length = 0
+    simbolos.length = 0
+    let bandera = false
     try {
         const sentencias = parse(entrada)
 
-        /*const interprete = new IntepreteVisitor()
+        const interprete = new IntepreteVisitor()
         sentencias.forEach(sentencia => {
             try {
                 sentencia.accept(interprete)
@@ -72,42 +73,45 @@ p_ejecutar.addEventListener('click', () => {
                 if(error instanceof ErrorSemantico) {
                     err = err +"\n"+ error.message + ' en linea ' + error.location.start.line + ' column ' + error.location.start.column
                     errores.push(error)
+                    bandera = true
                 }
             }
-        })*/
-    
-        const compilador = new CompiladorVisitor()
-        console.log({sentencias})
-        sentencias.forEach(sentencia => {
-            try {
-                
-                sentencia.accept(compilador)
-            } catch (error) {
-                console.log(error)
-                /*if(error instanceof ErrorSemantico) {
-                    console.log(error)
-                    err = err +"\n"+ error.message + ' en linea ' + error.location.start.line + ' column ' + error.location.start.column
-                    errores.push(error)
-                }*/
-            }
         })
-        consola.setValue(compilador.codigo.toString())
+    
+        if(!bandera) {
+            const compilador = new CompiladorVisitor()
+            console.log({sentencias})
+            sentencias.forEach(sentencia => {
+                try {
+                    
+                    sentencia.accept(compilador)
+                } catch (error) {
+                    console.log(error)
+                    /*if(error instanceof ErrorSemantico) {
+                        console.log(error)
+                        err = err +"\n"+ error.message + ' en linea ' + error.location.start.line + ' column ' + error.location.start.column
+                        errores.push(error)
+                    }*/
+                }
+            })
+            consola.setValue(compilador.codigo.toString())
+        }
 
-        /*if(obtenerErrores() != "") {
+        if(obtenerErrores() != "") {
             consola.setValue(consola.getValue()+'\nERRORES ENCONTRADOS\n'+ obtenerErrores())
-        }*/
+        }
     } catch (error) {
         console.log(error)
-        /*var err = error.message + ' en linea ' + error.location.start.line + ' column ' + error.location.start.column
+        var err = error.message + ' en linea ' + error.location.start.line + ' column ' + error.location.start.column
         errores.push({message: error.message, location: error.location, tipo: "Lexico/Sintactico"})
-        consola.setValue(err)*/
+        consola.setValue(err)
     }
 
     // if(obtenerErrores() != "") {
     //     consola.setValue(consola.getValue()+'\nERRORES ENCONTRADOS\n'+ obtenerErrores())
     // }
 
-    /*tbodyErrores.replaceChildren([])
+    tbodyErrores.replaceChildren([])
     tbodySimbolos.replaceChildren([])
     errores.forEach((error, index) => {
         agregarError(index+1, error)
@@ -117,7 +121,7 @@ p_ejecutar.addEventListener('click', () => {
         agregarSimbolo(simbolo)
     })
     
-    console.log(simbolos)*/
+    console.log(simbolos)
 })
 
 function obtenerErrores() {
