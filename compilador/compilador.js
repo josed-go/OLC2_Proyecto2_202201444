@@ -239,6 +239,18 @@ export class CompiladorVisitor extends BaseVisitor {
                 this.codigo.push(reg.T0)
                 this.codigo.pushObject({ tipo: "boolean", length: 4 })
                 break
+
+            case '++':
+                this.codigo.addi(reg.T0, reg.T0, 1)
+                this.codigo.push(reg.T0)
+                this.codigo.pushObject({ tipo: "int", length: 4 })
+                break
+
+            case '--':
+                this.codigo.addi(reg.T0, reg.T0, -1)
+                this.codigo.push(reg.T0)
+                this.codigo.pushObject({ tipo: "int", length: 4 })
+                break
             case 'typeof':
 
                 switch (object.tipo) {
