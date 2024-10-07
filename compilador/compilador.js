@@ -400,7 +400,6 @@ export class CompiladorVisitor extends BaseVisitor {
     /**
      * @type { BaseVisitor['visitIf'] }
     */
-
     visitIf(node) {
         this.codigo.comentario(`If`)
 
@@ -435,5 +434,29 @@ export class CompiladorVisitor extends BaseVisitor {
 
         
         this.codigo.comentario(`Fin If`)
+    }
+
+    /**
+     * @type { BaseVisitor['visitWhile'] }
+    */
+    visitWhile(node) {
+        this.codigo.comentario(`While`)
+        const startWhile = this.codigo.getLabel()
+        const endWhile = this.codigo.getLabel()
+
+        this.codigo.addLabel(startWhile)
+
+        this.codigo.comentario(`Condicion`)
+        node.cond.accept(this)
+        this.codigo.popObject(reg.T0)
+        this.codigo.comentario(`Fin Condicion`)
+
+        this.codigo.beq(reg.T0, reg.ZERO, endWhile)
+        this.codigo.comentario("Sentencias")
+        node.sent.accept(this)
+        this.codigo.j(startWhile)
+        this.codigo.addLabel(endWhile)
+
+        this.codigo.comentario(`Fin While`)
     }
 }
