@@ -93,7 +93,7 @@ Struct = "struct" _ id: ID _ "{" _ atrib: Atributo _ atributos: Atributo* _ "}" 
 Atributo = tipo: ("int"/"float"/"string"/"boolean"/"char"/ID) _ id: ID _ ";" _ { return { tipo, id } }
 
 Sentencias =
-    "print(" _ exp: Expresion _ expM: ( _ "," _ expM: Expresion _ { return expM })* _ ")" _ ";" { return crearNodo('print', { exps: [exp, ...expM] }) }
+    op:("print("/"System.out.println(") _ exp: Expresion _ expM: ( _ "," _ expM: Expresion _ { return expM })* _ ")" _ ";" { return crearNodo('print', { exps: [exp, ...expM] }) }
     / b: Bloque { return b }
     / "if" _ "(" _ cond: Expresion _")" _ sent: Sentencias _ sentF: ( _ "else" _ sentF: Sentencias { return sentF } )? { return crearNodo('if', { cond, sent, sentF }) }
     / "while" _ "(" _ cond: Expresion _ ")" _ sent: Sentencias { return crearNodo('while', { cond, sent }) }

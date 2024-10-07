@@ -184,9 +184,10 @@ export class CompiladorVisitor extends BaseVisitor {
     */
     visitOperacionUnaria(node) {
         this.codigo.comentario(`Operacion: ${node.op}`)
+        const exp = node.exp
         node.exp.accept(this)
 
-        this.codigo.popObject(reg.T0)
+        const object = this.codigo.popObject(reg.T0)
 
         switch (node.op) {
             case '-':
@@ -201,6 +202,25 @@ export class CompiladorVisitor extends BaseVisitor {
                 this.codigo.xor(reg.T0, reg.T0, reg.T1)
                 this.codigo.push(reg.T0)
                 this.codigo.pushObject({ tipo: "boolean", length: 4 })
+                break
+            case 'typeof':
+
+                switch (object.tipo) {
+                    case 'int':
+                        this.codigo.pushConstante({ tipo: "string", valor: "int" })
+                        break;
+                    case 'boolean':
+                        this.codigo.pushConstante({ tipo: "string", valor: "boolean" })
+                        break
+                    case 'string':
+                        this.codigo.pushConstante({ tipo: "string", valor: "string" })
+                        break
+                    case 'char':
+                        this.codigo.pushConstante({ tipo: "string", valor: "char" })
+                        break
+                    default:
+                        break
+                }
                 break
         }
 

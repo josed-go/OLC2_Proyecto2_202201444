@@ -412,7 +412,11 @@ export class Generador {
 
         return `.data
     val_true: .string "true"
-    val_false: .string "false"\nheap:\n.text\n
+    val_false: .string "false"
+    val_int: .string "int"
+    val_string: .string "string"
+    val_bool: .string "boolean"
+    val_char: .string "char"\nheap:\n.text\n
 # Inicializando el Heap Pointer (HP)
 la ${reg.HP}, heap
 main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`
