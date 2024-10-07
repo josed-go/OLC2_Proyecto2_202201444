@@ -81,15 +81,38 @@ export class CompiladorVisitor extends BaseVisitor {
             return
         }
 
+        /*if(node.op === '==') {
+            node.izq.accept(this)
+            node.der.accept(this)
+
+            const der = this.codigo.popObject(reg.T0)
+            const izq = this.codigo.popObject(reg.T1)
+
+            const labelTrue = this.codigo.getLabel()
+            const labelEnd = this.codigo.getLabel()
+
+            this.codigo.beq(reg.T0, reg.T1, labelTrue)
+            this.codigo.li(reg.T0, 0)
+            this.codigo.push(reg.T0)
+            this.codigo.j(labelEnd)
+
+            this.codigo.addLabel(labelTrue)
+            this.codigo.li(reg.T0, 1)
+            this.codigo.push(reg.T0)
+            this.codigo.addLabel(labelEnd)
+            this.codigo.pushObject({ tipo: "boolean", length: 4 })
+            return
+        }*/
+
         node.izq.accept(this)
         node.der.accept(this)
 
         const der = this.codigo.popObject(reg.T0)
         const izq = this.codigo.popObject(reg.T1)
 
-        let tipo = ""
+        let tipo = izq.tipo
 
-        if(izq.tipo === "string" && der.tipo === "string" && node.op === "+") {
+        if(izq.tipo === "string" && der.tipo === "string" && (node.op === "+" || node.op === "+=")) {
             this.codigo.add(reg.A0, reg.ZERO, reg.T1)
             this.codigo.add(reg.A1, reg.ZERO, reg.T0)
             this.codigo.callBuiltin("concatenacionString")
@@ -150,9 +173,7 @@ export class CompiladorVisitor extends BaseVisitor {
                 break
 
             case '<':
-                console.log("111",this.codigo.stackObject)
                 this.codigo.slt(reg.T0, reg.T1, reg.T0)
-                console.log("222", this.codigo.stackObject)
                 this.codigo.push(reg.T0)
                 tipo = "boolean"
                 break
@@ -162,6 +183,18 @@ export class CompiladorVisitor extends BaseVisitor {
                 this.codigo.xori(reg.T0, reg.T0, 1)
                 this.codigo.push(reg.T0)
                 tipo = "boolean"
+                break
+            
+            case '+=':
+                this.codigo.add(reg.T0, reg.T0, reg.T1)
+                this.codigo.push(reg.T0)
+                tipo = "int"
+                break
+
+            case '-=':
+                this.codigo.sub(reg.T0, reg.T1, reg.T0)
+                this.codigo.push(reg.T0)
+                tipo = "int"
                 break
 
             /*case '&&':
