@@ -1,3 +1,6 @@
+const mayusculas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+const minusculas = 'abcdefghijklmnopqrstuvwxyz'
+
 export const stringToRegistro = (str) => {
     const resultado = []
     let index = 0
@@ -28,6 +31,24 @@ export const stringA1Byte = (str) => {
 
     while(index < str.length) {
         resultado.push(str.charCodeAt(index))
+        index++
+    }
+
+    resultado.push(0)
+
+    return resultado
+}
+
+export const stringToLower = (str) => {
+    const resultado = []
+    let index = 0
+
+    while(index < str.length) {
+        if(mayusculas.includes(str[index])) {
+            resultado.push(str.charCodeAt(index) + 32)
+        } else {
+            resultado.push(str.charCodeAt(index))
+        }
         index++
     }
 

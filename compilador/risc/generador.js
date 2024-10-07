@@ -120,7 +120,9 @@ export class Generador {
         this.instrucciones.push(new Instruccion('beq', rs1, rs2, label))
     }
 
-    b
+    bnez(rs, label) {
+        this.instrucciones.push(new Instruccion('bnez', rs, label));
+    }
 
     beqz(rs1, label) {
         this.instrucciones.push(new Instruccion('beqz', rs1, label))
@@ -176,6 +178,45 @@ export class Generador {
         }
         this._usedBuiltins.add(builtin)
         this.jal(builtin)
+    }
+
+    toLowerOrtoUpper(val) {
+        const endLabel = this.getLabel();
+        const loopLabel = this.getLabel();
+        const skipLowerLabel = this.getLabel();
+    
+        this.pop(reg.T0)
+    
+        this.push(reg.T0);
+    
+        this.label(loopLabel);
+        
+        this.lb(reg.T1, reg.T0);
+    
+        this.beqz(reg.T1, endLabel);
+    
+        if(val == 32){
+            this.li(reg.T2, 65)
+            this.li(reg.T3, 90)
+        }else {
+            this.li(reg.T2, 97)
+            this.li(reg.T3, 122)
+        }
+
+        this.slt(reg.T4, reg.T1, reg.T2)
+        this.bnez(reg.T4, skipLowerLabel)
+        this.slt(reg.T4, reg.T3, reg.T1)
+        this.bnez(reg.T4, skipLowerLabel)
+    
+        this.addi(reg.T1, reg.T1, val)
+        
+        this.sb(reg.T1, reg.T0)
+    
+        this.label(skipLowerLabel)
+        this.addi(reg.T0, reg.T0, 1)
+        this.j(loopLabel)
+    
+        this.label(endLabel)
     }
 
     printInt(rd = reg.A0) {

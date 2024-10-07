@@ -1,5 +1,6 @@
 import { Generador } from "./risc/generador.js";
 import { registers as reg } from "./risc/registros.js";
+import { stringToLower } from "./risc/utilidades.js";
 import { BaseVisitor } from "./visitor.js";
 
 export class CompiladorVisitor extends BaseVisitor {
@@ -187,7 +188,9 @@ export class CompiladorVisitor extends BaseVisitor {
         const exp = node.exp
         node.exp.accept(this)
 
-        const object = this.codigo.popObject(reg.T0)
+        if(node.op !== "toLowerCase" && node.op !== "toUpperCase") {
+            const object = this.codigo.popObject(reg.T0)
+        }
 
         switch (node.op) {
             case '-':
@@ -221,6 +224,13 @@ export class CompiladorVisitor extends BaseVisitor {
                     default:
                         break
                 }
+                break
+
+            case 'toLowerCase':
+                this.codigo.toLowerOrtoUpper(32)
+                break
+            case 'toUpperCase':
+                this.codigo.toLowerOrtoUpper(-32)
                 break
         }
 
