@@ -1,6 +1,6 @@
 import { Generador } from "./risc/generador.js";
 import { registers as reg } from "./risc/registros.js";
-import { stringToLower } from "./risc/utilidades.js";
+import { stringToLower, valorPorDefecto } from "./risc/utilidades.js";
 import { BaseVisitor } from "./visitor.js";
 
 export class CompiladorVisitor extends BaseVisitor {
@@ -375,6 +375,8 @@ export class CompiladorVisitor extends BaseVisitor {
 
             this.codigo.sw(reg.T1, reg.T3)
 
+            this.codigo.push(reg.T1)
+
             this.codigo.pushObject(valueObject)
 
 
@@ -436,9 +438,9 @@ export class CompiladorVisitor extends BaseVisitor {
             this.codigo.push(reg.T1)
             this.codigo.pushObject({...variableO, id: undefined})
     
-            this.codigo.comentario(`Fin Referencia variable: ${node.id}: ${JSON.stringify(this.codigo.stackObject)}`)
         }
-
+        
+        this.codigo.comentario(`Fin Referencia variable: ${node.id}: ${JSON.stringify(this.codigo.stackObject)}`)
     }
 
     /**
@@ -726,5 +728,35 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.comentario(`Fin Declaracion Array: ${node.id}`)
     }
 
+    /**
+     * @type { BaseVisitor['visitDclArrayReser'] }
+     */
+    visitDclArrayReser(node) {
+        const tamano = node.tamanos[0]
+        const id = node.id
+        const tipo = node.tipo1
+        
+        this.codigo.comentario(`Declaracion Array: ${id}`)
+
+        this.codigo.agregarArray(id, tipo, tamano.valor)
+
+        this.codigo.la(reg.T5, id)
+
+        // tamano.accept(this)
+        // this.codigo.popObject(reg.T0)
+
+        const valorDefecto = valorPorDefecto(tipo)
+
+        this.codigo.li(reg.T0, valorDefecto)
+        for(let i = 0; i < tamano.valor; i++) {
+            this.codigo.sw(reg.T0, reg.T5, i * 4)
+        }
+
+        this.codigo.pushObject({ tipo, length: tamano.valor * 4 }) 
+        this.codigo.tagObject(id)
+
+
+        this.codigo.comentario(`Fin Declaracion Array: ${id}`)
+    }
 
 }
