@@ -77,6 +77,8 @@ p_ejecutar.addEventListener('click', () => {
                 }
             }
         })
+
+        console.log(interprete.salida)
     
         if(!bandera) {
             const compilador = new CompiladorVisitor()
