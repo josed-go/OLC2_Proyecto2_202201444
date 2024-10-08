@@ -7,6 +7,7 @@ export class CompiladorVisitor extends BaseVisitor {
     constructor() {
         super()
         this.codigo = new Generador()
+        this.breakCounter = []
     }
 
     /**
@@ -442,7 +443,10 @@ export class CompiladorVisitor extends BaseVisitor {
     visitWhile(node) {
         this.codigo.comentario(`While`)
         const startWhile = this.codigo.getLabel()
+        // const escapeWhile = this.codigo.getLabel()
         const endWhile = this.codigo.getLabel()
+
+        this.breakCounter.push({ break: endWhile })
 
         this.codigo.addLabel(startWhile)
 
@@ -457,6 +461,8 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.j(startWhile)
         this.codigo.addLabel(endWhile)
 
+        this.breakCounter.pop()
+
         this.codigo.comentario(`Fin While`)
     }
 
@@ -467,6 +473,10 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.comentario(`For`)
         const startFor = this.codigo.getLabel()
         const endFor = this.codigo.getLabel()
+
+        this.breakCounter.push({ break: endFor })
+
+        this.codigo.newScope()
 
         node.decl.accept(this)
 
@@ -484,7 +494,106 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.j(startFor)
         this.codigo.addLabel(endFor)
 
+        this.codigo.endScope()
+
+        this.breakCounter.pop()
+
         this.codigo.comentario(`Fin For`)
         
+    }
+
+    /**
+     * @type { BaseVisitor['visitSwitch'] }
+    */
+    visitSwitch(node) {
+        this.codigo.comentario(`Switch`)
+
+        const endSwitch = this.codigo.getLabel()
+        const defaultLabel = node.def ? this.codigo.getLabel() : endSwitch
+
+        this.breakCounter.push({ break: endSwitch })
+
+        this.codigo.newScope()
+
+        node.cond.accept(this)
+        this.codigo.popObject(reg.T0)
+
+        const casos = node.cases.map(c => ({ label: this.codigo.getLabel(), exp: c.exp }))
+
+        /*console.log(casos)
+
+        casos.forEach(c => {
+            // c.exp.accept(this)
+            // this.codigo.popObject(reg.T1)
+
+
+            this.codigo.li(reg.T1, c.exp.valor)
+
+
+            this.codigo.beq(reg.T0, reg.T1, c.label)
+        })*/
+
+        node.cases.forEach((c, index) => {
+            this.codigo.comentario(`Validando Case`)
+            this.codigo.push(reg.T0)
+            // const caseLabel = this.codigo.getLabel()
+
+            c.exp.accept(this)
+            this.codigo.popObject(reg.T1)
+
+            this.codigo.pop(reg.T0)
+
+            // // this.codigo.xor(reg.T0, reg.T0, reg.T1)
+            // // this.codigo.seqz(reg.T0, reg.T0)
+
+            // // this.codigo.li(reg.T2, 1)
+
+            this.codigo.beq(reg.T0, reg.T1, casos[index].label)
+
+            // if(index < node.cases.length - 1) {
+            //     this.codigo.j(caseLabel)
+            // } else {
+            //     this.codigo.j(defaultLabel)
+            // }
+            // this.codigo.j(endSwitch)
+        })
+
+        this.codigo.j(defaultLabel)
+
+        node.cases.forEach((c, index) => {
+            this.codigo.comentario(`Case`)
+            this.codigo.addLabel(casos[index].label)
+            c.sent.forEach(s => s.accept(this))
+        })
+
+        
+
+        if(node.def) {
+            this.codigo.addLabel(defaultLabel)
+            this.codigo.comentario(`Default`)
+            node.def.forEach(s => s.accept(this))
+        }
+        
+        
+        this.codigo.addLabel(endSwitch)
+        
+        this.codigo.endScope()
+
+        this.breakCounter.pop()
+        this.codigo.comentario(`Fin Switch`)
+    }
+
+    /**
+     * @type { BaseVisitor['visitBreak'] }
+     */
+    visitBreak(node) {
+        this.codigo.comentario(`Break`)
+        if(this.breakCounter.length === 0) {
+            throw new Error("Break fuera de ciclo")
+        }
+
+        const label = this.breakCounter[this.breakCounter.length - 1]
+        this.codigo.j(label.break)
+        this.codigo.comentario(`Fin Break`)
     }
 }
