@@ -69,3 +69,16 @@ export const obtenerTamano = (tipo) => {
             return 4
     }
 }
+
+export const valorPorDefecto = (tipo) => {
+    switch(tipo) {
+        case 'int':
+            return 0
+        case 'boolean':
+            return false
+        case 'string':
+            return ""
+        case 'char':
+            return 0
+    }
+}

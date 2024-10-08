@@ -353,17 +353,44 @@ export class CompiladorVisitor extends BaseVisitor {
     */
     visitAsignacion(node) {
         this.codigo.comentario(`Asignacion variable: ${node.id}`)
-        node.asign.accept(this)
-        const valueObject = this.codigo.popObject(reg.T0)
-        const [offset, variableO] = this.codigo.getObject(node.id)
+        const posiciones = node.posiciones
 
-        this.codigo.addi(reg.T1, reg.SP, offset)
+        if(posiciones.length > 0) {
+            const posicion = posiciones[0]
+            node.asign.accept(this)
+            posicion.accept(this)
+            const valueObject = this.codigo.popObject(reg.T0)
+            const indexObject = this.codigo.popObject(reg.T1)
 
-        this.codigo.sw(reg.T0, reg.T1)
 
-        this.codigo.push(reg.T0)
+            const [offset, variableO] = this.codigo.getObject(node.id)
 
-        this.codigo.pushObject(valueObject)
+            this.codigo.la(reg.T5, node.id)
+
+            this.codigo.li(reg.T2, 4)
+
+            this.codigo.mul(reg.T0, reg.T0, reg.T2)
+
+            this.codigo.add(reg.T3, reg.T5, reg.T0)
+
+            this.codigo.sw(reg.T1, reg.T3)
+
+            this.codigo.pushObject(valueObject)
+
+
+        }else {
+            node.asign.accept(this)
+            const valueObject = this.codigo.popObject(reg.T0)
+            const [offset, variableO] = this.codigo.getObject(node.id)
+    
+            this.codigo.addi(reg.T1, reg.SP, offset)
+    
+            this.codigo.sw(reg.T0, reg.T1)
+    
+            this.codigo.push(reg.T0)
+    
+            this.codigo.pushObject(valueObject)
+        }
 
         this.codigo.comentario(`Fin Asignacion variable: ${node.id}`)
     }
@@ -698,4 +725,6 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.tagObject(node.id)
         this.codigo.comentario(`Fin Declaracion Array: ${node.id}`)
     }
+
+
 }
