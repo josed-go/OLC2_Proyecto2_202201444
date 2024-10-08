@@ -367,15 +367,45 @@ export class CompiladorVisitor extends BaseVisitor {
     */
     visitReferenciaVar(node){
         this.codigo.comentario(`Referencia variable: ${node.id}: ${JSON.stringify(this.codigo.stackObject)}`)
+        const posiciones = node.posiciones
 
-        const [offset, variableO] = this.codigo.getObject(node.id)
+        if(posiciones.length > 0) {
+            const posicion = posiciones[0]
 
-        this.codigo.addi(reg.T0, reg.SP, offset)
-        this.codigo.lw(reg.T1, reg.T0)
-        this.codigo.push(reg.T1)
-        this.codigo.pushObject({...variableO, id: undefined})
+            posicion.accept(this)
+            this.codigo.popObject(reg.T0)
 
-        this.codigo.comentario(`Fin Referencia variable: ${node.id}: ${JSON.stringify(this.codigo.stackObject)}`)
+
+
+            const [offset, variableO] = this.codigo.getObject(node.id)
+
+            this.codigo.la(reg.T5, node.id)
+
+            this.codigo.li(reg.T1, 4)
+
+            this.codigo.mul(reg.T0, reg.T0, reg.T1)
+
+            this.codigo.add(reg.T2, reg.T5, reg.T0)
+            
+            this.codigo.lw(reg.T3, reg.T2, 0)
+
+            // this.codigo.add(reg.T0, reg.T0, reg.T1)
+
+            // this.codigo.lw(reg.T0, reg.T0)
+
+            this.codigo.push(reg.T3)
+            this.codigo.pushObject({...variableO, id: undefined})
+        }else {
+            const [offset, variableO] = this.codigo.getObject(node.id)
+    
+            this.codigo.addi(reg.T0, reg.SP, offset)
+            this.codigo.lw(reg.T1, reg.T0)
+            this.codigo.push(reg.T1)
+            this.codigo.pushObject({...variableO, id: undefined})
+    
+            this.codigo.comentario(`Fin Referencia variable: ${node.id}: ${JSON.stringify(this.codigo.stackObject)}`)
+        }
+
     }
 
     /**
@@ -615,5 +645,51 @@ export class CompiladorVisitor extends BaseVisitor {
         const label = this.sentEscapeCounter[this.sentEscapeCounter.length - 1]
         this.codigo.j(label.continue)
         this.codigo.comentario(`Fin Continue`)
+    }
+
+    /**
+     * @type { BaseVisitor['visitReturn'] }
+     */
+    visitReturn(node) {
+        this.codigo.comentario(`Return`)
+        this.codigo.comentario(`Fin Return`)
+    }
+
+    /**
+     * @type { BaseVisitor['visitArray'] }
+     */
+    visitArray(node) {
+        this.codigo.comentario(`Array`)
+        const valores = node.valores
+
+        valores.forEach((v, index) => {
+            v.accept(this)
+            this.codigo.popObject(reg.T0)
+            // this.codigo.add(reg.T2, reg.ZERO, reg.T1)
+            this.codigo.sw(reg.T0, reg.T5, index * 4)
+        })
+
+        this.codigo.comentario(`Fin Array`)
+
+        return valores
+    }
+
+    /**
+     * @type { BaseVisitor['visitDclArray'] }
+     */
+    visitDclArray(node) {
+        this.codigo.comentario(`Declaracion Array: ${node.id}`)
+
+        const val = node.valores
+
+        this.codigo.agregarArray(node.id, node.tipo, val.valores.length)
+
+        this.codigo.la(reg.T5, node.id)
+
+        node.valores.accept(this)
+
+        this.codigo.pushObject({ tipo: node.tipo, length: val.valores.length * 4 }) 
+        this.codigo.tagObject(node.id)
+        this.codigo.comentario(`Fin Declaracion Array: ${node.id}`)
     }
 }

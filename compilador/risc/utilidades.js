@@ -56,3 +56,16 @@ export const stringToLower = (str) => {
 
     return resultado
 }
+
+export const obtenerTamano = (tipo) => {
+    switch(tipo) {
+        case 'int':
+            return 4
+        case 'boolean':
+            return 4
+        case 'string':
+            return 4
+        case 'char':
+            return 4
+    }
+}

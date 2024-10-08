@@ -1,6 +1,6 @@
 import { builtins } from "./builtins.js";
 import { registers as reg } from "./registros.js";
-import { stringA1Byte, stringToRegistro } from "./utilidades.js";
+import { obtenerTamano, stringA1Byte, stringToRegistro } from "./utilidades.js";
 
 class Instruccion {
     constructor(instruccion, rd, rs1, rs2) {
@@ -26,6 +26,7 @@ export class Generador {
         this.depth = 0
         this.contLabel = 0
         this._usedBuiltins = new Set()
+        this.arrayCount = []
     }
 
     add(rd, rs1, rs2) {
@@ -299,6 +300,10 @@ export class Generador {
     comentario(texto) {
         this.instrucciones.push(new Instruccion(`# ${texto}`))
     }
+    
+    agregarArray(id, tipo, length) {
+        this.arrayCount.push({id, space: obtenerTamano(tipo) * length})
+    }
 
     pushConstante(object) {
         let length = 0
@@ -451,7 +456,7 @@ export class Generador {
             this.ret()
         })
 
-        return `.data
+        return `.data\n${this.arrayCount.map((array, index) => `${array.id}: .space ${array.space}`).join('\n')}
     val_true: .string "true"
     val_false: .string "false"
     val_int: .string "int"
