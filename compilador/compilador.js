@@ -222,12 +222,15 @@ export class CompiladorVisitor extends BaseVisitor {
         const exp = node.exp
         node.exp.accept(this)
 
-        if(node.op !== "toLowerCase" && node.op !== "toUpperCase") {
-            const object = this.codigo.popObject(reg.T0)
-        }
+        // if(node.op !== "toLowerCase" && node.op !== "toUpperCase") {
+        //     const object = this.codigo.popObject(reg.T0)
+        // }
+
+        let object
 
         switch (node.op) {
             case '-':
+                object = this.codigo.popObject(reg.T0)
                 this.codigo.li(reg.T1, 0)
                 this.codigo.sub(reg.T0, reg.T1, reg.T0)
                 this.codigo.push(reg.T0)
@@ -235,6 +238,7 @@ export class CompiladorVisitor extends BaseVisitor {
                 break
 
             case '!':
+                object = this.codigo.popObject(reg.T0)
                 this.codigo.li(reg.T1, 1)
                 this.codigo.xor(reg.T0, reg.T0, reg.T1)
                 this.codigo.push(reg.T0)
@@ -242,18 +246,20 @@ export class CompiladorVisitor extends BaseVisitor {
                 break
 
             case '++':
+                object = this.codigo.popObject(reg.T0)
                 this.codigo.addi(reg.T0, reg.T0, 1)
                 this.codigo.push(reg.T0)
                 this.codigo.pushObject({ tipo: "int", length: 4 })
                 break
 
             case '--':
+                object = this.codigo.popObject(reg.T0)
                 this.codigo.addi(reg.T0, reg.T0, -1)
                 this.codigo.push(reg.T0)
                 this.codigo.pushObject({ tipo: "int", length: 4 })
                 break
             case 'typeof':
-
+                object = this.codigo.popObject(reg.T0)
                 switch (object.tipo) {
                     case 'int':
                         this.codigo.pushConstante({ tipo: "string", valor: "int" })
