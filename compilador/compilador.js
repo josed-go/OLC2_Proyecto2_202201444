@@ -421,14 +421,14 @@ export class CompiladorVisitor extends BaseVisitor {
             this.codigo.mul(reg.T0, reg.T0, reg.T1)
 
             this.codigo.add(reg.T2, reg.T5, reg.T0)
-            
-            this.codigo.lw(reg.T3, reg.T2, 0)
+            // this.codigo.addi(reg.T3, reg.SP, offset)
+            this.codigo.lw(reg.T1, reg.T2, 0)
 
             // this.codigo.add(reg.T0, reg.T0, reg.T1)
 
             // this.codigo.lw(reg.T0, reg.T0)
 
-            this.codigo.push(reg.T3)
+            this.codigo.push(reg.T1)
             this.codigo.pushObject({...variableO, id: undefined})
         }else {
             const [offset, variableO] = this.codigo.getObject(node.id)
@@ -436,7 +436,7 @@ export class CompiladorVisitor extends BaseVisitor {
             this.codigo.addi(reg.T0, reg.SP, offset)
             this.codigo.lw(reg.T1, reg.T0)
             this.codigo.push(reg.T1)
-            this.codigo.pushObject({...variableO, id: undefined})
+            this.codigo.pushObject({...variableO, id: node.id})
     
         }
         
@@ -750,11 +750,46 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.li(reg.T0, valorDefecto)
         for(let i = 0; i < tamano.valor; i++) {
             this.codigo.sw(reg.T0, reg.T5, i * 4)
+            this.codigo.push(reg.T0) // NO SÉ
         }
 
         this.codigo.pushObject({ tipo, length: tamano.valor * 4 }) 
         this.codigo.tagObject(id)
 
+
+        this.codigo.comentario(`Fin Declaracion Array: ${id}`)
+    }
+
+    /**
+     * @type { BaseVisitor['visitDclArrayCopia'] }
+     */
+    visitDclArrayCopia(node) {
+        this.codigo.comentario(`Declaracion Array: ${node.id}`)
+        const tipo = node.tipo
+        const id = node.id
+        const arrayCopia = node.exp
+
+        arrayCopia.accept(this)
+        const object = this.codigo.popObject(reg.T0)
+
+        this.codigo.agregarArray(id, tipo, object.length / 4)
+
+        this.codigo.addi(reg.T1, reg.T1, object.length/4)
+
+        this.codigo.la(reg.T2, object.id)
+        this.codigo.la(reg.T3, id)
+
+        const copyLoop = this.codigo.addLabel()
+
+        this.codigo.lw(reg.T4, reg.T2, 0)
+        this.codigo.sw(reg.T4, reg.T3, 0)
+        this.codigo.addi(reg.T2, reg.T2, 4)
+        this.codigo.addi(reg.T3, reg.T3, 4)
+        this.codigo.addi(reg.T1, reg.T1, -1)
+        this.codigo.bnez(reg.T1, copyLoop)
+
+        this.codigo.pushObject({ tipo, length: object.length * 4 })
+        this.codigo.tagObject(id)
 
         this.codigo.comentario(`Fin Declaracion Array: ${id}`)
     }

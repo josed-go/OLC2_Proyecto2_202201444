@@ -310,7 +310,6 @@ export class Generador {
 
         switch (object.tipo) {
             case "int":
-                console.log("aqui1", object)
                 this.li(reg.T0, object.valor)
                 this.push()
                 length = 4
