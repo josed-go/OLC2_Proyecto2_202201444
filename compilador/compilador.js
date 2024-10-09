@@ -794,4 +794,51 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.comentario(`Fin Declaracion Array: ${id}`)
     }
 
+    /**
+     * @type { BaseVisitor['visitFuncionesArray'] }
+     */
+    visitFuncionesArray(node) {
+        const func = node.func
+        const id = node.id
+
+        id.accept(this)
+        const object = this.codigo.popObject(reg.T0)
+
+        switch (func) {
+            case "indexof":
+                break
+            case "join":
+                const longitud = object.length / 4
+
+                this.codigo.la(reg.T5, object.id)
+
+                for(let i = 0; i < longitud; i++) {
+                    this.codigo.lw(reg.T1, reg.T5, i * 4)
+                    if(i < longitud - 1) {
+                        this.codigo.lw(reg.T2, reg.T5, (i+1)*4)
+                    }else{
+                        this.codigo.li(reg.T2, 0)
+                    }
+                    this.codigo.add(reg.A0, reg.ZERO, reg.T1)
+                    this.codigo.add(reg.A1, reg.ZERO, reg.T2)
+                    this.codigo.callBuiltin("concatenacionString")
+                }
+                this.codigo.pushObject({ tipo: "string", length: 4 })
+
+
+                break;
+            case "length":
+                const length = object.length / 4
+
+                this.codigo.li(reg.T0, length)
+                this.codigo.push(reg.T0)
+
+                this.codigo.pushObject({ tipo: "int", length: 4 })
+                break;
+        
+            default:
+                break;
+        }
+    }
+
 }
