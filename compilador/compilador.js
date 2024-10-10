@@ -1,3 +1,4 @@
+import nodos from "./nodos.js";
 import { Generador } from "./risc/generador.js";
 import { registers as reg } from "./risc/registros.js";
 import { stringToLower, valorPorDefecto } from "./risc/utilidades.js";
@@ -433,10 +434,10 @@ export class CompiladorVisitor extends BaseVisitor {
         }else {
             const [offset, variableO] = this.codigo.getObject(node.id)
     
-            this.codigo.addi(reg.T0, reg.SP, offset)
-            this.codigo.lw(reg.T1, reg.T0)
-            this.codigo.push(reg.T1)
-            this.codigo.pushObject({...variableO, id: node.id})
+            this.codigo.addi(reg.T1, reg.SP, offset)
+            this.codigo.lw(reg.T0, reg.T1)
+            this.codigo.push(reg.T0)
+            this.codigo.pushObject({...variableO, id: undefined})
     
         }
         
@@ -544,8 +545,6 @@ export class CompiladorVisitor extends BaseVisitor {
 
         this.sentEscapeCounter.push({ break: endFor, continue: continueL })
 
-        this.codigo.newScope()
-
         node.decl.accept(this)
 
         this.codigo.addLabel(startFor)
@@ -564,8 +563,6 @@ export class CompiladorVisitor extends BaseVisitor {
         node.incre.accept(this)
         this.codigo.j(startFor)
         this.codigo.addLabel(endFor)
-
-        this.codigo.endScope()
 
         this.sentEscapeCounter.pop()
 
@@ -839,6 +836,66 @@ export class CompiladorVisitor extends BaseVisitor {
             default:
                 break;
         }
+    }
+
+    /**
+     * @type { BaseVisitor['visitForEach'] }
+     */
+    visitForEach(node) {
+        this.codigo.comentario(`ForEach`)
+        const idArreglo = node.id2
+        const idVariable = node.id
+        const tipo = node.tipo
+    
+        const startLoop = this.codigo.getLabel()
+        const continueLoop = this.codigo.getLabel()
+        const endLoop = this.codigo.getLabel()
+    
+        this.sentEscapeCounter.push({ break: endLoop, continue: continueLoop })
+    
+        this.codigo.newScope()
+    
+        const [offset, arreglo] = this.codigo.getObject(idArreglo)
+    
+        const longitud = arreglo.length / 4
+    
+        this.codigo.li(reg.T4, 0)
+        this.codigo.li(reg.T2, longitud)
+    
+        this.codigo.la(reg.T5, arreglo.id)
+
+        this.codigo.addLabel(startLoop)
+    
+        this.codigo.beq(reg.T4, reg.T2, endLoop)
+    
+        this.codigo.slli(reg.T3, reg.T4, 2)
+        
+        this.codigo.add(reg.T3, reg.T5, reg.T3)
+        this.codigo.lw(reg.T0, reg.T3)
+    
+        this.codigo.push(reg.T0)
+        this.codigo.tagObject(idVariable)
+    
+        node.sent.accept(this)
+    
+        this.codigo.addLabel(continueLoop)
+    
+        const bytesAEliminar = this.codigo.endScope()
+        if (bytesAEliminar > 0) {
+            this.codigo.addi(reg.SP, reg.SP, bytesAEliminar)
+        }
+    
+        this.codigo.newScope()
+    
+        this.codigo.addi(reg.T4, reg.T4, 1)
+    
+        this.codigo.j(startLoop)
+    
+        this.codigo.addLabel(endLoop)
+    
+        this.sentEscapeCounter.pop()
+    
+        this.codigo.comentario(`Fin ForEach`)
     }
 
 }

@@ -73,6 +73,10 @@ export class Generador {
         this.instrucciones.push(new Instruccion("slt", rd, rs1, rs2))
     }
 
+    slli(rd, rs1, inm) {
+        this.instrucciones.push(new Instruccion("slli", rd, rs1, inm))
+    }
+
     bne(rs1, rs2, label) {
         this.instrucciones.push(new Instruccion("bne", rs1, rs2, label))
     }
@@ -416,6 +420,14 @@ export class Generador {
 
     tagObject(id) {
         this.stackObject[this.stackObject.length - 1].id = id
+    }
+
+    deleteObject(id) {
+        const index = this.stackObject.findIndex(object => object.id === id)
+
+        if(index !== -1) {
+            this.stackObject.splice(index, 1)
+        }
     }
 
     getObject(id) {
