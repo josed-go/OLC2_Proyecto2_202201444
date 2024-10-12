@@ -67,6 +67,8 @@ export const obtenerTamano = (tipo) => {
             return 4
         case 'char':
             return 4
+        case 'float':
+            return 4
     }
 }
 
@@ -80,6 +82,8 @@ export const valorPorDefecto = (tipo) => {
             return ""
         case 'char':
             return 0
+        case 'float':
+            return 0.0
     }
 }
 

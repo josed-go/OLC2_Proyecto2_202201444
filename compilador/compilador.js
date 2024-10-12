@@ -470,26 +470,51 @@ export class CompiladorVisitor extends BaseVisitor {
         if(posiciones.length > 0) {
             const posicion = posiciones[0]
             node.asign.accept(this)
-            posicion.accept(this)
-            const valueObject = this.codigo.popObject(reg.T0)
-            const indexObject = this.codigo.popObject(reg.T1)
+
+            if(this.codigo.getTopObject().tipo === "float") {
+                posicion.accept(this)
+                const valueObject = this.codigo.popObject(reg.T0)
+                const indexObject = this.codigo.popObject(fr.FT1)
 
 
-            const [offset, variableO] = this.codigo.getObject(node.id)
+                const [offset, variableO] = this.codigo.getObject(node.id)
 
-            this.codigo.la(reg.T5, node.id)
+                this.codigo.la(reg.T5, node.id)
 
-            this.codigo.li(reg.T2, 4)
+                this.codigo.li(reg.T2, 4)
 
-            this.codigo.mul(reg.T0, reg.T0, reg.T2)
+                this.codigo.mul(reg.T0, reg.T0, reg.T2)
 
-            this.codigo.add(reg.T3, reg.T5, reg.T0)
+                this.codigo.add(reg.T3, reg.T5, reg.T0)
 
-            this.codigo.sw(reg.T1, reg.T3)
+                this.codigo.fsw(fr.FT1, reg.T3)
 
-            this.codigo.push(reg.T1)
+                this.codigo.pushFloat(fr.FT1)
 
-            this.codigo.pushObject(valueObject)
+                this.codigo.pushObject(valueObject)
+            }else {
+                posicion.accept(this)
+                const valueObject = this.codigo.popObject(reg.T0)
+                const indexObject = this.codigo.popObject(reg.T1)
+    
+    
+                const [offset, variableO] = this.codigo.getObject(node.id)
+    
+                this.codigo.la(reg.T5, node.id)
+    
+                this.codigo.li(reg.T2, 4)
+    
+                this.codigo.mul(reg.T0, reg.T0, reg.T2)
+    
+                this.codigo.add(reg.T3, reg.T5, reg.T0)
+    
+                this.codigo.sw(reg.T1, reg.T3)
+    
+                this.codigo.push(reg.T1)
+    
+                this.codigo.pushObject(valueObject)
+            }
+
 
 
         }else {
@@ -562,12 +587,19 @@ export class CompiladorVisitor extends BaseVisitor {
             // this.codigo.addi(reg.T3, reg.SP, offset)
             this.codigo.lw(reg.T1, reg.T2, 0)
 
-            // this.codigo.add(reg.T0, reg.T0, reg.T1)
+            if(variableO.tipo === "float") {
+                this.codigo.flw(fr.FT0, reg.T2)
+                this.codigo.pushFloat(fr.FT0)
+                this.codigo.pushObject({...variableO, id: undefined})
+            }else {
 
-            // this.codigo.lw(reg.T0, reg.T0)
-
-            this.codigo.push(reg.T1)
-            this.codigo.pushObject({...variableO, id: undefined})
+                // this.codigo.add(reg.T0, reg.T0, reg.T1)
+    
+                // this.codigo.lw(reg.T0, reg.T0)
+    
+                this.codigo.push(reg.T1)
+                this.codigo.pushObject({...variableO, id: undefined})
+            }
         }else {
             const [offset, variableO] = this.codigo.getObject(node.id)
     
@@ -833,9 +865,17 @@ export class CompiladorVisitor extends BaseVisitor {
 
         valores.forEach((v, index) => {
             v.accept(this)
-            this.codigo.popObject(reg.T0)
+
+            const isFloat = this.codigo.getTopObject().tipo === "float"
+
+            this.codigo.popObject(isFloat ? fr.FT0 : reg.T0)
             // this.codigo.add(reg.T2, reg.ZERO, reg.T1)
-            this.codigo.sw(reg.T0, reg.T5, index * 4)
+            if(isFloat) {
+                this.codigo.fsw(fr.FT0, reg.T5, index * 4)
+            }else {
+
+                this.codigo.sw(reg.T0, reg.T5, index * 4)
+            }
         })
 
         this.codigo.comentario(`Fin Array`)
