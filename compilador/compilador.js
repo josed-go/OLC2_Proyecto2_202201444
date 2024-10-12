@@ -118,11 +118,44 @@ export class CompiladorVisitor extends BaseVisitor {
 
         let tipo = izq.tipo
 
-        if(izq.tipo === "string" && der.tipo === "string" && (node.op === "+" || node.op === "+=")) {
-            this.codigo.add(reg.A0, reg.ZERO, reg.T1)
-            this.codigo.add(reg.A1, reg.ZERO, reg.T0)
-            this.codigo.callBuiltin("concatenacionString")
-            this.codigo.pushObject({ tipo: "string", length: 4})
+        if(izq.tipo === "string" && der.tipo === "string") {
+
+            switch (node.op) {
+                case '+':
+                case '+=':
+                    this.codigo.add(reg.A0, reg.ZERO, reg.T1)
+                    this.codigo.add(reg.A1, reg.ZERO, reg.T0)
+                    this.codigo.callBuiltin("concatenacionString")
+                    this.codigo.pushObject({ tipo: "string", length: 4})
+        
+                    this.codigo.comentario(`Fin Operacion: ${node.op}`)
+                    break
+                case '==':
+                    this.codigo.add(reg.A0, reg.ZERO, reg.T1)
+                    this.codigo.add(reg.A1, reg.ZERO, reg.T0)
+                    this.codigo.callBuiltin("compararString")
+                    this.codigo.pushObject({ tipo: "boolean", length: 4})
+
+                    this.codigo.comentario(`Fin Operacion: ${node.op}`)
+                    break
+
+                case '!=':
+                    this.codigo.add(reg.A0, reg.ZERO, reg.T1)
+                    this.codigo.add(reg.A1, reg.ZERO, reg.T0)
+                    this.codigo.callBuiltin("compararString")
+                    // this.codigo.popObject(reg.T0)
+                    this.codigo.xori(reg.T0, reg.T0, 1)
+                    this.codigo.push(reg.T0)
+                    this.codigo.pushObject({ tipo: "boolean", length: 4})
+
+                    this.codigo.comentario(`Fin Operacion: ${node.op}`)
+
+                    break
+
+                default:
+                    break;
+            }
+
             return
         }
 

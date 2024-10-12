@@ -255,12 +255,12 @@ export class Generador {
     printBoolean(rd = reg.A0) {
         const labelNum = this.contLabel++
         
-        if (rd !== reg.A0) {
+        /*if (rd !== reg.A0) {
             this.push(reg.A0)
             this.add(reg.T0, rd, reg.ZERO)
         } else {
             this.add(reg.T0, rd, reg.ZERO)
-        }
+        }*/
 
         this.beqz(reg.T0, `print_false_${labelNum}`)
         
