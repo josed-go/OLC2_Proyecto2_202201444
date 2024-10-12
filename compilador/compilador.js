@@ -198,12 +198,33 @@ export class CompiladorVisitor extends BaseVisitor {
                 tipo = "int"
                 break
             case '==':
+
+                if(hayFloat) {
+                    this.codigo.feq(reg.T0, fr.FT0, fr.FT1)
+                    this.codigo.push(reg.T0)
+                    tipo = "boolean"
+
+                    this.codigo.pushObject({ tipo, length: 4 })
+                    break
+                }
+
                 this.codigo.xor(reg.T0, reg.T0, reg.T1)
                 this.codigo.seqz(reg.T0, reg.T0)
                 this.codigo.push(reg.T0)
                 tipo = "boolean"
                 break
             case '!=':
+
+                if(hayFloat) {
+                    this.codigo.feq(reg.T0, fr.FT0, fr.FT1)
+                    this.codigo.xori(reg.T0, reg.T0, 1)
+                    this.codigo.push(reg.T0)
+                    tipo = "boolean"
+
+                    this.codigo.pushObject({ tipo, length: 4 })
+                    break
+                }
+
                 this.codigo.xor(reg.T0, reg.T0, reg.T1)
                 this.codigo.snez(reg.T0, reg.T0)
                 this.codigo.push(reg.T0)
@@ -211,12 +232,32 @@ export class CompiladorVisitor extends BaseVisitor {
                 break
 
             case '>':
+
+                if(hayFloat) {
+                    this.codigo.flt(reg.T0, fr.FT0, fr.FT1)
+                    this.codigo.push(reg.T0)
+                    tipo = "boolean"
+
+                    this.codigo.pushObject({ tipo, length: 4 })
+                    break
+                }
+
                 this.codigo.slt(reg.T0, reg.T0, reg.T1)
                 this.codigo.push(reg.T0)
                 tipo = "boolean"
                 break
 
             case '>=':
+
+                if(hayFloat) {
+                    this.codigo.fle(reg.T0, fr.FT0, fr.FT1)
+                    this.codigo.push(reg.T0)
+                    tipo = "boolean"
+
+                    this.codigo.pushObject({ tipo, length: 4 })
+                    break
+                }
+
                 this.codigo.slt(reg.T0, reg.T1, reg.T0)
                 this.codigo.xori(reg.T0, reg.T0, 1)
                 this.codigo.push(reg.T0)
@@ -224,12 +265,32 @@ export class CompiladorVisitor extends BaseVisitor {
                 break
 
             case '<':
+
+                if(hayFloat) {
+                    this.codigo.flt(reg.T0, fr.FT1, fr.FT0)
+                    this.codigo.push(reg.T0)
+                    tipo = "boolean"
+
+                    this.codigo.pushObject({ tipo, length: 4 })
+                    break
+                }
+
                 this.codigo.slt(reg.T0, reg.T1, reg.T0)
                 this.codigo.push(reg.T0)
                 tipo = "boolean"
                 break
                 
             case '<=':
+
+                if(hayFloat) {
+                    this.codigo.fle(reg.T0, fr.FT1, fr.FT0)
+                    this.codigo.push(reg.T0)
+                    tipo = "boolean"
+
+                    this.codigo.pushObject({ tipo, length: 4 })
+                    break
+                }
+
                 this.codigo.slt(reg.T0, reg.T0, reg.T1)
                 this.codigo.xori(reg.T0, reg.T0, 1)
                 this.codigo.push(reg.T0)
@@ -712,7 +773,11 @@ export class CompiladorVisitor extends BaseVisitor {
         const continueL = this.codigo.getLabel()
         const endFor = this.codigo.getLabel()
 
+        const incrementoLabel = this.codigo.getLabel()
+
         this.sentEscapeCounter.push({ break: endFor, continue: continueL })
+
+        this.codigo.newScope()
 
         node.decl.accept(this)
 
@@ -730,8 +795,17 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.addLabel(continueL)
 
         node.incre.accept(this)
+        this.codigo.popObject(reg.T0)
         this.codigo.j(startFor)
         this.codigo.addLabel(endFor)
+
+        this.codigo.comment('Reduciendo la pila');
+
+        const bytesToRemove = this.codigo.endScope();
+
+        if (bytesToRemove > 0) {
+            this.codigo.addi(reg.SP, reg.SP, bytesToRemove);
+        }
 
         this.sentEscapeCounter.pop()
 

@@ -549,6 +549,18 @@ main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`
         this.instrucciones.push(new Instruccion('fsw', rs1, `${inmediato}(${rs2})`))
     }
 
+    feq(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion('feq.s', rd, rs1, rs2))
+    }
+
+    flt(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion('flt.s', rd, rs1, rs2))
+    }
+
+    fle(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion('fle.s', rd, rs1, rs2))
+    }
+
     fcvtsw(rd, rs1) {
         this.instrucciones.push(new Instruccion('fcvt.s.w', rd, rs1))
     }
