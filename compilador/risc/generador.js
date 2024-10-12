@@ -386,7 +386,10 @@ export class Generador {
     }
 
     pushObject(object) {
-        this.stackObject.push(object)
+        this.stackObject.push({
+            ...object,
+            depth: this.depth,
+        })
         // this.pushConstante(object)
     }
 

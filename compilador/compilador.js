@@ -16,7 +16,9 @@ export class CompiladorVisitor extends BaseVisitor {
     */
     visitExpresionStmt(node) {
         node.exp.accept(this)
-        this.codigo.popObject(reg.T0)
+
+        const isFloat = this.codigo.getTopObject().tipo === "float"
+        this.codigo.popObject(isFloat ? fr.FT0 : reg.T0)
     }
 
     /**
@@ -361,7 +363,7 @@ export class CompiladorVisitor extends BaseVisitor {
             case 'typeof':
                 const isFloat = this.codigo.getTopObject().tipo === "float"
                 object = this.codigo.popObject(isFloat ? fr.FT0 : reg.T0)
-                
+
                 switch (object.tipo) {
                     case 'int':
                         this.codigo.pushConstante({ tipo: "string", valor: "int" })
@@ -500,14 +502,21 @@ export class CompiladorVisitor extends BaseVisitor {
                 this.codigo.li(reg.T1, offset)
 
                 this.codigo.fcvtsw(fr.FT1, reg.T1)
+
+                this.codigo.fcvtsw(fr.FT2, reg.SP)
+                this.codigo.addi(reg.T1, reg.SP, offset)
+    
+                this.codigo.sw(reg.T0, reg.T1)
         
-                this.codigo.fadd(fr.FT1, reg.SP, fr.FT1)
+                this.codigo.fadd(fr.FT1, fr.FT2, fr.FT1)
         
-                this.codigo.fsw(fr.FT0, fr.FT1)
+                this.codigo.fsw(fr.FT0, reg.T1)
         
                 this.codigo.pushFloat(fr.FT0)
         
                 this.codigo.pushObject(valueObject)
+
+                this.codigo.comentario(`Fin Asignacion variable: ${node.id}`)
                 return
             }
 
