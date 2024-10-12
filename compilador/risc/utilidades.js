@@ -82,3 +82,14 @@ export const valorPorDefecto = (tipo) => {
             return 0
     }
 }
+
+export const numberToF32 = (num) => {
+    const buffer = new ArrayBuffer(4)
+    const float32 = new Float32Array(buffer)
+    const uint32 = new Uint32Array(buffer)
+    float32[0] = num
+
+    const inter = uint32[0]
+    const hex = inter.toString(16)
+    return '0x' + hex
+}

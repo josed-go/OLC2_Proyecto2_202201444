@@ -1,6 +1,6 @@
 import { builtins } from "./builtins.js";
-import { registers as reg } from "./registros.js";
-import { obtenerTamano, stringA1Byte, stringToRegistro } from "./utilidades.js";
+import { registers as reg, floatRegisters as fr } from "./registros.js";
+import { numberToF32, obtenerTamano, stringA1Byte, stringToRegistro } from "./utilidades.js";
 
 class Instruccion {
     constructor(instruccion, rd, rs1, rs2) {
@@ -85,6 +85,10 @@ export class Generador {
         this.instrucciones.push(new Instruccion("blt", rs1, rs2, label))
     }
 
+    bltz(rs1, label) {
+        this.instrucciones.push(new Instruccion("bltz", rs1, label))
+    }
+
     bge(rs1, rs2, label) {
         this.instrucciones.push(new Instruccion("bge", rs1, rs2, label))
     }
@@ -99,6 +103,10 @@ export class Generador {
 
     snez(rd, rs1) {
         this.instrucciones.push(new Instruccion("snez", rd, rs1))
+    }
+
+    neg(rd, rs1) {
+        this.instrucciones.push(new Instruccion("neg", rd, rs1))
     }
 
     sw(rs1, rs2, inm = 0) {
@@ -166,6 +174,11 @@ export class Generador {
     push(rd = reg.T0) {
         this.addi(reg.SP, reg.SP, -4)
         this.sw(rd, reg.SP)
+    }
+
+    pushFloat(rd = fr.FT0) {
+        this.addi(reg.SP, reg.SP, -4)
+        this.fsw(rd, reg.SP)
     }
 
     pop(rd = reg.T0) {
@@ -353,6 +366,13 @@ export class Generador {
                 this.push()
                 length = 4
                 break
+
+            case "float":
+                const ieee754 = numberToF32(object.valor)
+                this.li(reg.T0, ieee754)
+                this.push(reg.T0)
+                length = 4
+                break
         
             default:
                 break
@@ -368,6 +388,11 @@ export class Generador {
     pushObject(object) {
         this.stackObject.push(object)
         // this.pushConstante(object)
+    }
+
+    popFloat(rd = fr.FT0) {
+        this.flw(rd, reg.SP)
+        this.addi(reg.SP, reg.SP, 4)
     }
 
     popObject(rd = reg.T0) {
@@ -390,6 +415,10 @@ export class Generador {
 
             case "char":
                 this.pop(rd)
+                break
+
+            case "float":
+                this.popFloat(rd)
                 break
         
             default:
@@ -428,6 +457,10 @@ export class Generador {
         if(index !== -1) {
             this.stackObject.splice(index, 1)
         }
+    }
+
+    getTopObject() {
+        return this.stackObject[this.stackObject.length - 1]
     }
 
     getObject(id) {
@@ -477,5 +510,48 @@ export class Generador {
 # Inicializando el Heap Pointer (HP)
 la ${reg.HP}, heap
 main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`
+    }
+
+    // --- Instruciones flotantes
+
+    fadd(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion('fadd.s', rd, rs1, rs2))
+    }
+
+    fsub(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion('fsub.s', rd, rs1, rs2))
+    }
+
+    fmul(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion('fmul.s', rd, rs1, rs2))
+    }
+
+    fdiv(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion('fdiv.s', rd, rs1, rs2))
+    }
+
+    fli(rd, inmediato) {
+        this.instrucciones.push(new Instruccion('fli.s', rd, inmediato))
+    }
+
+    fmv(rd, rs1) {
+        this.instrucciones.push(new Instruccion('fmv.s', rd, rs1))
+    }
+
+    flw(rd, rs1, inmediato = 0) {
+        this.instrucciones.push(new Instruccion('flw', rd, `${inmediato}(${rs1})`))
+    }
+
+    fsw(rs1, rs2, inmediato = 0) {
+        this.instrucciones.push(new Instruccion('fsw', rs1, `${inmediato}(${rs2})`))
+    }
+
+    fcvtsw(rd, rs1) {
+        this.instrucciones.push(new Instruccion('fcvt.s.w', rd, rs1))
+    }
+
+    printFloat() {
+        this.li(reg.A7, 2)
+        this.ecall()
     }
 }

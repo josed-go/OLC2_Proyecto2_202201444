@@ -255,7 +255,7 @@ FuncionesEmbebidas =
     / "Object." _ "keys" _ "(" _ exp:Expresion _ ")" { return crearNodo('unaria', { op: "keys", exp }) }
 
 Dato = 
-    [0-9]+ { return text().includes('.') ? crearNodo('dato', { valor: parseFloat(text(), 10), tipo:"float"}) : crearNodo('dato', { valor: parseInt(text(), 10), tipo:"int"})	 }
+    [0-9]+( "." [0-9]+ )? { return text().includes('.') ? crearNodo('dato', { valor: parseFloat(text(), 10), tipo:"float"}) : crearNodo('dato', { valor: parseInt(text(), 10), tipo:"int"})	 }
     / bool:("true"/"false") { return bool == "true" ? crearNodo('dato', { valor: true, tipo: 'boolean' }) : crearNodo('dato', { valor: false, tipo: 'boolean' }) }
     / "'" char:[^'] "'" { return crearNodo('dato', { valor: char, tipo: 'char' }) }
     / "\"" cadena:([^"]*) "\"" { return crearNodo('dato', { valor: unescapeString(cadena.join("")), tipo: 'string' }) }

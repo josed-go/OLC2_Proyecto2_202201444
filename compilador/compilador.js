@@ -1,6 +1,6 @@
 import nodos from "./nodos.js";
 import { Generador } from "./risc/generador.js";
-import { registers as reg } from "./risc/registros.js";
+import { registers as reg, floatRegisters as fr } from "./risc/registros.js";
 import { stringToLower, valorPorDefecto } from "./risc/utilidades.js";
 import { BaseVisitor } from "./visitor.js";
 
@@ -109,8 +109,10 @@ export class CompiladorVisitor extends BaseVisitor {
         node.izq.accept(this)
         node.der.accept(this)
 
-        const der = this.codigo.popObject(reg.T0)
-        const izq = this.codigo.popObject(reg.T1)
+        const derFloat = this.codigo.getTopObject().tipo === "float"
+        const der = this.codigo.popObject(derFloat ? fr.FT0 : reg.T0)
+        const izqFloat = this.codigo.getTopObject().tipo === "float"
+        const izq = this.codigo.popObject(izqFloat ? fr.FT1 : reg.T1)
 
         let tipo = izq.tipo
 
@@ -122,23 +124,68 @@ export class CompiladorVisitor extends BaseVisitor {
             return
         }
 
+        let hayFloat = false
+
+        if(izqFloat || derFloat) {
+            if(!izqFloat) this.codigo.fcvtsw(fr.FT1, reg.T1)
+            if(!derFloat) this.codigo.fcvtsw(fr.FT0, reg.T0)
+
+            hayFloat = true
+        }
+
         switch (node.op) {
             case '+':
+
+                if(hayFloat) {
+                    this.codigo.fadd(fr.FT0, fr.FT0, fr.FT1)
+                    this.codigo.pushFloat(fr.FT0)
+                    
+                    this.codigo.pushObject({ tipo: "float", length: 4 })
+                    break
+                }
+
                 this.codigo.add(reg.T0, reg.T0, reg.T1)
                 this.codigo.push(reg.T0)
                 tipo = "int"
                 break
             case '-':
+
+                if(hayFloat) {
+                    this.codigo.fsub(fr.FT0, fr.FT1, fr.FT0)
+                    this.codigo.pushFloat(fr.FT0)
+                    
+                    this.codigo.pushObject({ tipo: "float", length: 4 })
+                    break
+                }
+
                 this.codigo.sub(reg.T0, reg.T1, reg.T0)
                 this.codigo.push(reg.T0)
                 tipo = "int"
                 break
             case '*':
+
+                if(hayFloat) {
+                    this.codigo.fmul(fr.FT0, fr.FT1, fr.FT0)
+                    this.codigo.pushFloat(fr.FT0)
+                    
+                    this.codigo.pushObject({ tipo: "float", length: 4 })
+                    break
+                }
+
                 this.codigo.mul(reg.T0, reg.T0, reg.T1)
                 this.codigo.push(reg.T0)
                 tipo = "int"
                 break
             case '/':
+
+                if(hayFloat) {
+                    this.codigo.fdiv(fr.FT0, fr.FT1, fr.FT0)
+                    this.codigo.pushFloat(fr.FT0)
+                    
+                    this.codigo.pushObject({ tipo: "float", length: 4 })
+                    break
+                }
+
                 this.codigo.div(reg.T0, reg.T1, reg.T0)
                 this.codigo.push(reg.T0)
                 tipo = "int"
@@ -188,12 +235,30 @@ export class CompiladorVisitor extends BaseVisitor {
                 break
             
             case '+=':
+
+                if(hayFloat) {
+                    this.codigo.fadd(fr.FT0, fr.FT0, fr.FT1)
+                    this.codigo.pushFloat(fr.FT0)
+
+                    this.codigo.pushObject({ tipo: "float", length: 4 })
+                    break
+                }
+
                 this.codigo.add(reg.T0, reg.T0, reg.T1)
                 this.codigo.push(reg.T0)
                 tipo = "int"
                 break
 
             case '-=':
+
+                if(hayFloat) {
+                    this.codigo.fsub(fr.FT0, fr.FT1, fr.FT0)
+                    this.codigo.pushFloat(fr.FT0)
+
+                    this.codigo.pushObject({ tipo: "float", length: 4 })
+                    break
+                }
+
                 this.codigo.sub(reg.T0, reg.T1, reg.T0)
                 this.codigo.push(reg.T0)
                 tipo = "int"
@@ -211,7 +276,8 @@ export class CompiladorVisitor extends BaseVisitor {
                 tipo = "boolean"
                 break
         }
-        this.codigo.pushObject({ tipo, length: 4 })
+
+        if(!hayFloat) this.codigo.pushObject({ tipo, length: 4 })
         this.codigo.comentario(`Fin Operacion: ${node.op}`)
     }
 
@@ -231,6 +297,17 @@ export class CompiladorVisitor extends BaseVisitor {
 
         switch (node.op) {
             case '-':
+
+                if(this.codigo.getTopObject().tipo === "float") {
+                    object = this.codigo.popObject(fr.FT0)
+                    this.codigo.li(reg.T1, 0)
+                    this.codigo.fcvtsw(fr.FT1, reg.T1)
+                    this.codigo.fsub(fr.FT0, fr.FT1, fr.FT0)
+                    this.codigo.pushFloat(fr.FT0)
+                    this.codigo.pushObject({ tipo: "float", length: 4 })
+                    return
+                }
+
                 object = this.codigo.popObject(reg.T0)
                 this.codigo.li(reg.T1, 0)
                 this.codigo.sub(reg.T0, reg.T1, reg.T0)
@@ -247,6 +324,17 @@ export class CompiladorVisitor extends BaseVisitor {
                 break
 
             case '++':
+
+                if(this.codigo.getTopObject().tipo === "float") {
+                    object = this.codigo.popObject(fr.FT0)
+                    this.codigo.li(reg.T1, 1)
+                    this.codigo.fcvtsw(fr.FT1, reg.T1)
+                    this.codigo.fadd(fr.FT0, fr.FT0, fr.FT1)
+                    this.codigo.pushFloat(fr.FT0)
+                    this.codigo.pushObject({ tipo: "float", length: 4 })
+                    return
+                }
+
                 object = this.codigo.popObject(reg.T0)
                 this.codigo.addi(reg.T0, reg.T0, 1)
                 this.codigo.push(reg.T0)
@@ -254,13 +342,26 @@ export class CompiladorVisitor extends BaseVisitor {
                 break
 
             case '--':
+
+                if(this.codigo.getTopObject().tipo === "float") {
+                    object = this.codigo.popObject(fr.FT0)
+                    this.codigo.li(reg.T1, 1)
+                    this.codigo.fcvtsw(fr.FT1, reg.T1)
+                    this.codigo.fsub(fr.FT0, fr.FT0, fr.FT1)
+                    this.codigo.pushFloat(fr.FT0)
+                    this.codigo.pushObject({ tipo: "float", length: 4 })
+                    return
+                }
+
                 object = this.codigo.popObject(reg.T0)
                 this.codigo.addi(reg.T0, reg.T0, -1)
                 this.codigo.push(reg.T0)
                 this.codigo.pushObject({ tipo: "int", length: 4 })
                 break
             case 'typeof':
-                object = this.codigo.popObject(reg.T0)
+                const isFloat = this.codigo.getTopObject().tipo === "float"
+                object = this.codigo.popObject(isFloat ? fr.FT0 : reg.T0)
+                
                 switch (object.tipo) {
                     case 'int':
                         this.codigo.pushConstante({ tipo: "string", valor: "int" })
@@ -273,6 +374,9 @@ export class CompiladorVisitor extends BaseVisitor {
                         break
                     case 'char':
                         this.codigo.pushConstante({ tipo: "string", valor: "char" })
+                        break
+                    case 'float':
+                        this.codigo.pushConstante({ tipo: "string", valor: "float" })
                         break
                     default:
                         break
@@ -306,7 +410,10 @@ export class CompiladorVisitor extends BaseVisitor {
             exp.accept(this)
             // this.codigo.pop(reg.A0)
             // this.codigo.printInt()
-            const object = this.codigo.popObject(reg.A0)
+
+            const isFloat = this.codigo.getTopObject().tipo === "float"
+
+            const object = this.codigo.popObject( isFloat ? fr.FA0 : reg.A0)
 
             if(object.tipo === "int") {
                 this.codigo.printInt()
@@ -316,6 +423,8 @@ export class CompiladorVisitor extends BaseVisitor {
                 this.codigo.printBoolean()
             } else if(object.tipo === "char") {
                 this.codigo.printChar()
+            }else if(object.tipo === "float") {
+                this.codigo.printFloat()
             }
             this.codigo.espacio()
         })
@@ -383,6 +492,25 @@ export class CompiladorVisitor extends BaseVisitor {
 
         }else {
             node.asign.accept(this)
+
+            if(this.codigo.getTopObject().tipo === "float") {  
+                const valueObject = this.codigo.popObject(fr.FT0)
+                const [offset, variableO] = this.codigo.getObject(node.id)
+
+                this.codigo.li(reg.T1, offset)
+
+                this.codigo.fcvtsw(fr.FT1, reg.T1)
+        
+                this.codigo.fadd(fr.FT1, reg.SP, fr.FT1)
+        
+                this.codigo.fsw(fr.FT0, fr.FT1)
+        
+                this.codigo.pushFloat(fr.FT0)
+        
+                this.codigo.pushObject(valueObject)
+                return
+            }
+
             const valueObject = this.codigo.popObject(reg.T0)
             const [offset, variableO] = this.codigo.getObject(node.id)
     
@@ -437,7 +565,7 @@ export class CompiladorVisitor extends BaseVisitor {
             this.codigo.addi(reg.T1, reg.SP, offset)
             this.codigo.lw(reg.T0, reg.T1)
             this.codigo.push(reg.T0)
-            this.codigo.pushObject({...variableO, id: undefined})
+            this.codigo.pushObject({...variableO, id: node.id})
     
         }
         
@@ -797,6 +925,7 @@ export class CompiladorVisitor extends BaseVisitor {
     visitFuncionesArray(node) {
         const func = node.func
         const id = node.id
+        this.codigo.comentario(`Funciones Array: ${func}`)
 
         id.accept(this)
         const object = this.codigo.popObject(reg.T0)
@@ -805,22 +934,48 @@ export class CompiladorVisitor extends BaseVisitor {
             case "indexof":
                 break
             case "join":
+                /*const startLoop = this.codigo.getLabel()
+                const endLoop = this.codigo.getLabel()
+                const skipComa = this.codigo.getLabel()
+    
                 const longitud = object.length / 4
-
+            
+                this.codigo.li(reg.T4, 0)
+                this.codigo.li(reg.T2, longitud)
+            
                 this.codigo.la(reg.T5, object.id)
+        
+                this.codigo.addLabel(startLoop)
+            
+                this.codigo.beq(reg.T4, reg.T2, endLoop)
+            
+                this.codigo.slli(reg.T3, reg.T4, 2)
+                
+                this.codigo.add(reg.T3, reg.T5, reg.T3)
+                this.codigo.lw(reg.T0, reg.T3)
 
-                for(let i = 0; i < longitud; i++) {
-                    this.codigo.lw(reg.T1, reg.T5, i * 4)
-                    if(i < longitud - 1) {
-                        this.codigo.lw(reg.T2, reg.T5, (i+1)*4)
-                    }else{
-                        this.codigo.li(reg.T2, 0)
-                    }
-                    this.codigo.add(reg.A0, reg.ZERO, reg.T1)
-                    this.codigo.add(reg.A1, reg.ZERO, reg.T2)
-                    this.codigo.callBuiltin("concatenacionString")
-                }
-                this.codigo.pushObject({ tipo: "string", length: 4 })
+                this.codigo.add(reg.A0, reg.ZERO, reg.T0)
+
+                this.codigo.callBuiltin("intToString")
+
+                this.codigo.li(reg.T1, longitud - 1)
+                this.codigo.beq(reg.T1, reg.T4, skipComa)
+                this.codigo.li(reg.T1, 44)
+                this.codigo.sb(reg.T1, reg.HP)
+                this.codigo.addi(reg.HP, reg.HP, 1)
+
+                this.codigo.addi(reg.T4, reg.T4, 1)
+    
+                this.codigo.j(startLoop)
+
+                this.codigo.addLabel(skipComa)
+
+                this.codigo.addi(reg.T4, reg.T4, 1)
+                this.codigo.j(startLoop)
+
+            
+                this.codigo.addLabel(endLoop)
+                this.codigo.pushObject({ tipo: "string", length: 4 })*/
 
 
                 break;
@@ -836,6 +991,7 @@ export class CompiladorVisitor extends BaseVisitor {
             default:
                 break;
         }
+        this.codigo.comentario(`Fin Funciones Array: ${func}`)
     }
 
     /**

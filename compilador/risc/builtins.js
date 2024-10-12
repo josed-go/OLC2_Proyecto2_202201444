@@ -36,46 +36,49 @@ export const concatenacionString = (codigo) => {
     codigo.addi(reg.HP, reg.HP, 1)
 }
 
-export const concatenacionStringJoin = (codigo) => {
-    // Copiar el primer string (A0)
-    codigo.push(reg.HP)
+export const intToString = (codigo) => {
+    const isNegative = codigo.getLabel();  // Label para manejar números negativos
+    const startConversion = codigo.getLabel();  // Label para iniciar la conversión
+    const endConversion = codigo.getLabel();  // Label para finalizar la conversión
 
-    const loop1 = codigo.addLabel()
-    const end1 = codigo.getLabel()
+    // Verifica si el número es negativo
+    codigo.bltz(reg.A0, isNegative);
 
-    codigo.lb(reg.T1, reg.A0)
-    codigo.beq(reg.T1, reg.ZERO, end1)
+    // Conversión de entero positivo a string
+    codigo.addLabel(startConversion);
 
-    codigo.sb(reg.T1, reg.HP)
-    codigo.addi(reg.HP, reg.HP, 1)
-    codigo.addi(reg.A0, reg.A0, 1)
-    codigo.j(loop1)
-    codigo.addLabel(end1)
+    // Calcular el dígito menos significativo
+    codigo.li(reg.T2, 10);  // Divisor (base 10)
+    codigo.div(reg.T1, reg.A0, reg.T2);  // T1 = A0 / 10
+    codigo.rem(reg.T0, reg.A0, reg.T2);  // T0 = A0 % 10 (dígito)
+    
+    // Convierte el dígito a ASCII
+    codigo.addi(reg.T0, reg.T0, 48);  // Convierte el número a su valor ASCII
+    codigo.sb(reg.T0, reg.HP);  // Almacena el carácter en el heap
+    codigo.addi(reg.HP, reg.HP, 1);  // Mueve el puntero del heap
 
-    // Insertar la coma entre los strings
-    codigo.li(reg.T1, 44)     // ASCII de ','
-    codigo.sb(reg.T1, reg.HP) // Guardar la coma en HP
-    codigo.addi(reg.HP, reg.HP, 1) // Incrementar HP
+    // Si el cociente es mayor que 0, continúa con la conversión
+    codigo.bnez(reg.T1, startConversion);
 
-    // Copiar el segundo string (A1)
-    const loop2 = codigo.addLabel()
-    const end2 = codigo.getLabel()
+    // Finaliza la conversión
+    codigo.sb(reg.ZERO, reg.HP);  // Termina el string con un carácter nulo
+    codigo.addi(reg.HP, reg.HP, 1);
+    codigo.j(endConversion);
 
-    codigo.lb(reg.T1, reg.A1)
-    codigo.beq(reg.T1, reg.ZERO, end2)
+    // Manejo de números negativos
+    codigo.addLabel(isNegative);
+    codigo.li(reg.T0, 45);  // ASCII del signo negativo '-'
+    codigo.sb(reg.T0, reg.HP);
+    codigo.addi(reg.HP, reg.HP, 1);
+    codigo.neg(reg.A0, reg.A0);  // Convierte el número a positivo
+    codigo.j(startConversion);
 
-    codigo.sb(reg.T1, reg.HP)
-    codigo.addi(reg.HP, reg.HP, 1)
-    codigo.addi(reg.A1, reg.A1, 1)
-    codigo.j(loop2)
-    codigo.addLabel(end2)
+    // Label para el final de la conversión
+    codigo.addLabel(endConversion);
+};
 
-    // Agregar el terminador nulo al final del nuevo string
-    codigo.sb(reg.ZERO, reg.HP)
-    codigo.addi(reg.HP, reg.HP, 1)
-}
 
 export const builtins = {
     concatenacionString: concatenacionString,
-    concatenacionStringJoin: concatenacionStringJoin
+    intToString: intToString
 }
