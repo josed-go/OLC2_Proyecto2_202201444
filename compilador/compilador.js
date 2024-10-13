@@ -9,6 +9,8 @@ export class CompiladorVisitor extends BaseVisitor {
         super()
         this.codigo = new Generador()
         this.sentEscapeCounter = []
+        this.continueLabel = null
+        this.breakLabel = null
     }
 
     /**
@@ -779,10 +781,12 @@ export class CompiladorVisitor extends BaseVisitor {
     visitWhile(node) {
         this.codigo.comentario(`While`)
         const startWhile = this.codigo.getLabel()
-        const continueL = this.codigo.getLabel()
-        const endWhile = this.codigo.getLabel()
+        const prevContinue = this.continueLabel
+        this.continueLabel = startWhile
 
-        this.sentEscapeCounter.push({ break: endWhile, continue: continueL })
+        const endWhile = this.codigo.getLabel()
+        const prevBreak = this.breakLabel
+        this.breakLabel = endWhile
 
         this.codigo.addLabel(startWhile)
 
@@ -795,11 +799,11 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.comentario("Sentencias")
         node.sent.accept(this)
 
-        this.codigo.addLabel(continueL)
         this.codigo.j(startWhile)
         this.codigo.addLabel(endWhile)
 
-        this.sentEscapeCounter.pop()
+        this.continueLabel = prevContinue
+        this.breakLabel = prevBreak
 
         this.codigo.comentario(`Fin While`)
     }
@@ -810,12 +814,15 @@ export class CompiladorVisitor extends BaseVisitor {
     visitFor(node) {
         this.codigo.comentario(`For`)
         const startFor = this.codigo.getLabel()
-        const continueL = this.codigo.getLabel()
+        
         const endFor = this.codigo.getLabel()
+        const prevBreak = this.breakLabel
+        this.breakLabel = endFor
 
         const incrementoLabel = this.codigo.getLabel()
+        const prevContinue = this.continueLabel
+        this.continueLabel = incrementoLabel
 
-        this.sentEscapeCounter.push({ break: endFor, continue: continueL })
 
         this.codigo.newScope()
 
@@ -832,14 +839,15 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.comentario("Sentencias")
         node.sent.accept(this)
 
-        this.codigo.addLabel(continueL)
+        this.codigo.addLabel(incrementoLabel)
 
         node.incre.accept(this)
         this.codigo.popObject(reg.T0)
         this.codigo.j(startFor)
+
         this.codigo.addLabel(endFor)
 
-        this.codigo.comment('Reduciendo la pila');
+        this.codigo.comentario('Reduciendo la pila');
 
         const bytesToRemove = this.codigo.endScope();
 
@@ -847,7 +855,8 @@ export class CompiladorVisitor extends BaseVisitor {
             this.codigo.addi(reg.SP, reg.SP, bytesToRemove);
         }
 
-        this.sentEscapeCounter.pop()
+        this.continueLabel = prevContinue
+        this.breakLabel = prevBreak
 
         this.codigo.comentario(`Fin For`)
         
@@ -939,12 +948,7 @@ export class CompiladorVisitor extends BaseVisitor {
      */
     visitBreak(node) {
         this.codigo.comentario(`Break`)
-        if(this.sentEscapeCounter.length === 0) {
-            throw new Error("Break fuera de ciclo")
-        }
-
-        const label = this.sentEscapeCounter[this.sentEscapeCounter.length - 1]
-        this.codigo.j(label.break)
+        this.codigo.j(this.breakLabel)
         this.codigo.comentario(`Fin Break`)
     }
 
@@ -953,12 +957,7 @@ export class CompiladorVisitor extends BaseVisitor {
      */
     visitContinue(node) {
         this.codigo.comentario(`Continue`)
-        if(this.sentEscapeCounter.length === 0) {
-            throw new Error("Continue fuera de ciclo")
-        }
-
-        const label = this.sentEscapeCounter[this.sentEscapeCounter.length - 1]
-        this.codigo.j(label.continue)
+        this.codigo.j(this.continueLabel)
         this.codigo.comentario(`Fin Continue`)
     }
 
