@@ -869,6 +869,8 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.comentario(`Switch`)
 
         const endSwitch = this.codigo.getLabel()
+        const prevBreak = this.breakLabel
+        this.breakLabel = endSwitch
         const defaultLabel = node.def ? this.codigo.getLabel() : endSwitch
 
         this.sentEscapeCounter.push({ break: endSwitch })
@@ -939,7 +941,7 @@ export class CompiladorVisitor extends BaseVisitor {
         
         this.codigo.endScope()
 
-        this.sentEscapeCounter.pop()
+        this.breakLabel = prevBreak
         this.codigo.comentario(`Fin Switch`)
     }
 
