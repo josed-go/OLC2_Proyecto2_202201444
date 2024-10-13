@@ -494,6 +494,13 @@ export class CompiladorVisitor extends BaseVisitor {
                 this.codigo.push(reg.A0)
                 this.codigo.pushObject({ tipo: "int", length: 4 })
                 break
+
+            case 'parsefloat':
+                this.codigo.popObject(reg.A0)
+                this.codigo.callBuiltin("parseFloat")
+                this.codigo.pushFloat(reg.FA0)
+                this.codigo.pushObject({ tipo: "float", length: 4 })
+                break
         }
 
         this.codigo.comentario(`Fin Operacion: ${node.op}`)
@@ -1168,10 +1175,9 @@ export class CompiladorVisitor extends BaseVisitor {
         const tipo = node.tipo
     
         const startLoop = this.codigo.getLabel()
-        const continueLoop = this.codigo.getLabel()
         const endLoop = this.codigo.getLabel()
-    
-        this.sentEscapeCounter.push({ break: endLoop, continue: continueLoop })
+        const prevBreak = this.breakLabel
+        this.breakLabel = endLoop
     
         this.codigo.newScope()
     
@@ -1198,8 +1204,6 @@ export class CompiladorVisitor extends BaseVisitor {
     
         node.sent.accept(this)
     
-        this.codigo.addLabel(continueLoop)
-    
         const bytesAEliminar = this.codigo.endScope()
         if (bytesAEliminar > 0) {
             this.codigo.addi(reg.SP, reg.SP, bytesAEliminar)
@@ -1213,7 +1217,7 @@ export class CompiladorVisitor extends BaseVisitor {
     
         this.codigo.addLabel(endLoop)
     
-        this.sentEscapeCounter.pop()
+        this.breakLabel = prevBreak
     
         this.codigo.comentario(`Fin ForEach`)
     }

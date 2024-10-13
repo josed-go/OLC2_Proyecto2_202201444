@@ -1,5 +1,5 @@
 import { Generador } from "./generador.js"
-import { registers as reg } from "./registros.js"
+import { registers as reg, floatRegisters as fr } from "./registros.js"
 
 /**
  * 
@@ -140,7 +140,98 @@ export const parseInt = (codigo) => {
     codigo.comentario('Fin de parseInt')
 }
 
+/**
+ * 
+ * @param {Generador} codigo 
+ */
+export const parseFloat = (codigo) => {
+    const loopLabel = codigo.getLabel()
+    const endLabel = codigo.getLabel()
+    const negativoLabel = codigo.getLabel()
+    const fractionLabel = codigo.getLabel()
+    const fractionLoopLabel = codigo.getLabel()
+    
+    codigo.comentario('Inicio de parseFloat')
 
+    // Inicializar registros
+    codigo.li(reg.T0, 0)
+    codigo.li(reg.T3, 0)
+    codigo.li(reg.T4, 1)
+    codigo.fmvs(fr.FT0, reg.ZERO)
+    codigo.li(reg.T5, 0)
+    
+    // Verificar si el número es negativo
+    codigo.lb(reg.T1, reg.A0)
+    codigo.li(reg.T2, 45)
+    codigo.beq(reg.T1, reg.T2, negativoLabel)
+    codigo.j(loopLabel)
+    
+    // Si es negativo
+    codigo.label(negativoLabel)
+    codigo.li(reg.T3, 1) // Marcar como negativo
+    codigo.addi(reg.A0, reg.A0, 1)
+    
+    // Procesar la parte entera
+    codigo.label(loopLabel)
+    codigo.lb(reg.T1, reg.A0)
+    
+    // Fin del string o parte fraccionaria
+    codigo.beqz(reg.T1, endLabel)
+    codigo.li(reg.T2, 46)
+    codigo.beq(reg.T1, reg.T2, fractionLabel)
+    
+    // Convertir parte entera
+    codigo.addi(reg.T1, reg.T1, -48)
+    codigo.li(reg.T2, 10)
+    codigo.mul(reg.T0, reg.T0, reg.T2)
+    codigo.add(reg.T0, reg.T0, reg.T1)
+    codigo.addi(reg.A0, reg.A0, 1)
+    codigo.j(loopLabel)
+    
+    // Procesar la parte fraccionaria
+    codigo.label(fractionLabel)
+    codigo.addi(reg.A0, reg.A0, 1)
+    
+    codigo.label(fractionLoopLabel)
+    codigo.lb(reg.T1, reg.A0)
+    codigo.beqz(reg.T1, endLabel)
+    
+    codigo.addi(reg.T1, reg.T1, -48)
+    
+    // Calcular el factor fraccional en float
+    codigo.li(reg.T5, 10)
+    codigo.mul(reg.T4, reg.T4, reg.T5)
+    
+    // Convertir el dígito y el factor a flotante
+    codigo.fcvtsw(fr.FT1, reg.T1)
+    codigo.fcvtsw(fr.FT2, reg.T4)
+    
+    // Multiplicar el dígito por el factor fraccionario y sumar
+    codigo.fdiv(fr.FT1, fr.FT1, fr.FT2)
+    codigo.fadd(fr.FT0, fr.FT0, fr.FT1)
+    
+    codigo.addi(reg.A0, reg.A0, 1) // Avanzar al siguiente carácter
+    codigo.j(fractionLoopLabel)
+    
+    // Fin del parseo
+    codigo.label(endLabel)
+    
+    // Si es negativo, ajustar el valor final
+    codigo.beqz(reg.T3, 'finalize')
+    codigo.sub(reg.T0, reg.ZERO, reg.T0)
+    codigo.fneg(fr.FT0, fr.FT0)
+    
+    codigo.label('finalize')
+    
+    // Convertir parte entera a float y sumarla con la fracción
+    codigo.fcvtsw(fr.FT2, reg.T0)
+    codigo.fadd(fr.FT0, fr.FT0, fr.FT2)
+    
+    // Guardar el valor float resultante en el registro de retorno
+    codigo.fmvx(reg.A0, fr.FT0)
+    
+    codigo.comentario('Fin de parseFloat')
+}
 
 export const intToString = (codigo) => {
     const isNegative = codigo.getLabel();  // Label para manejar números negativos
@@ -188,5 +279,6 @@ export const builtins = {
     concatenacionString,
     intToString,
     compararString,
-    parseInt
+    parseInt,
+    parseFloat
 }

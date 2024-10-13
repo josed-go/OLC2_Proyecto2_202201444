@@ -541,9 +541,14 @@ main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`
         this.instrucciones.push(new Instruccion('fli.s', rd, inmediato))
     }
 
-    fmv(rd, rs1) {
-        this.instrucciones.push(new Instruccion('fmv.s', rd, rs1))
+    fmvs(rd, rs1) {
+        this.instrucciones.push(new Instruccion('fmv.s.x', rd, rs1))
     }
+
+    fmvx(rd, rs1) {
+        this.instrucciones.push(new Instruccion('fmv.x.s', rd, rs1))
+    }
+
 
     flw(rd, rs1, inmediato = 0) {
         this.instrucciones.push(new Instruccion('flw', rd, `${inmediato}(${rs1})`))
@@ -567,6 +572,10 @@ main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`
 
     fcvtsw(rd, rs1) {
         this.instrucciones.push(new Instruccion('fcvt.s.w', rd, rs1))
+    }
+
+    fneg(rd, rs1) {
+        this.instrucciones.push(new Instruccion('fneg.s', rd, rs1))
     }
 
     printFloat() {
