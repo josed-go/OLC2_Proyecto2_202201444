@@ -171,6 +171,10 @@ export class Generador {
         this.instrucciones.push(new Instruccion('la', rd, label))
     }
 
+    mv(rd, rs1) {
+        this.instrucciones.push(new Instruccion('mv', rd, rs1))
+    }
+
     push(rd = reg.T0) {
         this.addi(reg.SP, reg.SP, -4)
         this.sw(rd, reg.SP)

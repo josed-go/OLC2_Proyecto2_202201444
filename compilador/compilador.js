@@ -485,6 +485,13 @@ export class CompiladorVisitor extends BaseVisitor {
             case 'toUpperCase':
                 this.codigo.toLowerOrtoUpper(-32)
                 break
+
+            case 'parseInt':
+                this.codigo.popObject(reg.A0)
+                this.codigo.callBuiltin("parseInt")
+                this.codigo.push(reg.A0)
+                this.codigo.pushObject({ tipo: "int", length: 4 })
+                break
         }
 
         this.codigo.comentario(`Fin Operacion: ${node.op}`)

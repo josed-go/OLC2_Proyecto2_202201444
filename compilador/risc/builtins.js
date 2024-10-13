@@ -40,38 +40,36 @@ export const concatenacionString = (codigo) => {
  * @param {Generador} codigo 
  */
 export const compararString = (codigo) => {
-    const loop = codigo.getLabel()    // Etiqueta para el ciclo de comparación
-    const end = codigo.getLabel()     // Etiqueta para cuando las cadenas son iguales
-    const notEqual = codigo.getLabel() // Etiqueta para cuando las cadenas no son iguales
-    const fin = codigo.getLabel()     // Etiqueta para finalizar la comparación
+    const loop = codigo.getLabel()
+    const end = codigo.getLabel()
+    const notEqual = codigo.getLabel()
+    const fin = codigo.getLabel()
 
     // Inicia el ciclo
     codigo.addLabel(loop)
-    codigo.lb(reg.T1, reg.A0)        // Carga el byte actual de la primera cadena en T1
-    codigo.lb(reg.T2, reg.A1)        // Carga el byte actual de la segunda cadena en T2
+    codigo.lb(reg.T1, reg.A0)
+    codigo.lb(reg.T2, reg.A1)
 
-    
-    // Si los bytes actuales son diferentes, salta a notEqual
     codigo.bne(reg.T1, reg.T2, notEqual)
-    // Si ambos bytes son el fin de la cadena (0), las cadenas son iguales
+
     codigo.beq(reg.T1, reg.ZERO, end) 
     codigo.beq(reg.T2, reg.ZERO, end)
 
-    // Avanza al siguiente byte en ambas cadenas
+
     codigo.addi(reg.A0, reg.A0, 1)
     codigo.addi(reg.A1, reg.A1, 1)
 
     // Vuelve al inicio del ciclo
     codigo.j(loop)
 
-    // Etiqueta para el caso en que las cadenas son iguales
+
     codigo.addLabel(end)
-    codigo.li(reg.T0, 1)  // Cargar 1 en T0 para indicar que las cadenas son iguales
+    codigo.li(reg.T0, 1)
     codigo.j(fin)
 
-    // Etiqueta para el caso en que las cadenas no son iguales
+
     codigo.addLabel(notEqual)
-    codigo.li(reg.T0, 0)  // Cargar 0 en T0 para indicar que las cadenas no son iguales
+    codigo.li(reg.T0, 0)
     codigo.j(fin)
 
     // Finaliza la comparación
@@ -79,6 +77,68 @@ export const compararString = (codigo) => {
 
 }
 
+/**
+ * 
+ * @param {Generador} codigo 
+ */
+export const parseInt = (codigo) => {
+    const loopLabel = codigo.getLabel()
+    const endLabel = codigo.getLabel()
+    const negativoLabel = codigo.getLabel()
+    const floatLabel = codigo.getLabel()
+    
+    codigo.comentario('Inicio de parseInt')
+    
+    // codigo.popObject(reg.A0)
+    
+    codigo.li(reg.T0, 0)
+
+    codigo.li(reg.T3, 0)
+    
+    codigo.lb(reg.T1, reg.A0);
+    codigo.li(reg.T2, 45)
+    codigo.beq(reg.T1, reg.T2, negativoLabel)
+    codigo.j(loopLabel)
+    
+    codigo.label(negativoLabel)
+    codigo.li(reg.T3, 1)
+    codigo.addi(reg.A0, reg.A0, 1)
+    
+    codigo.label(loopLabel)
+    
+    codigo.lb(reg.T1, reg.A0)
+    
+    codigo.beqz(reg.T1, endLabel)
+    
+    codigo.li(reg.T2, 46)
+    codigo.beq(reg.T1, reg.T2, endLabel)
+    
+    codigo.addi(reg.T1, reg.T1, -48)
+    
+    codigo.li(reg.T2, 10)
+    codigo.mul(reg.T0, reg.T0, reg.T2)
+    
+    codigo.add(reg.T0, reg.T0, reg.T1)
+    
+    codigo.addi(reg.A0, reg.A0, 1)
+    
+    codigo.j(loopLabel)
+    
+    codigo.label(endLabel)
+    
+    codigo.beqz(reg.T3, floatLabel)
+    codigo.sub(reg.T0, reg.ZERO, reg.T0)
+    
+    codigo.label(floatLabel)
+    
+    codigo.mv(reg.A0, reg.T0)
+    
+    // codigo.pushObject({ tipo: 'int', length: 4 })
+    // codigo.push(reg.A0)
+    // codigo.pushObject({ tipo: "int", length: 4 })
+    
+    codigo.comentario('Fin de parseInt')
+}
 
 
 
@@ -127,5 +187,6 @@ export const intToString = (codigo) => {
 export const builtins = {
     concatenacionString,
     intToString,
-    compararString
+    compararString,
+    parseInt
 }
