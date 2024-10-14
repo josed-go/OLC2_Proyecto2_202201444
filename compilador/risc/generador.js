@@ -93,6 +93,10 @@ export class Generador {
         this.instrucciones.push(new Instruccion("bge", rs1, rs2, label))
     }
 
+    bgez(rs1, label) {
+        this.instrucciones.push(new Instruccion("bgez", rs1, label))
+    }
+
     seq(rd, rs1, rs2) {
         this.instrucciones.push(new Instruccion("seq", rd, rs1, rs2))
     }

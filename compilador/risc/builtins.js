@@ -148,8 +148,8 @@ export const parseFloat = (codigo) => {
     const loopLabel = codigo.getLabel()
     const endLabel = codigo.getLabel()
     const negativoLabel = codigo.getLabel()
-    const fractionLabel = codigo.getLabel()
-    const fractionLoopLabel = codigo.getLabel()
+    const fraccionLabel = codigo.getLabel()
+    const fraccionLoopLabel = codigo.getLabel()
     
     codigo.comentario('Inicio de parseFloat')
 
@@ -178,7 +178,7 @@ export const parseFloat = (codigo) => {
     // Fin del string o parte fraccionaria
     codigo.beqz(reg.T1, endLabel)
     codigo.li(reg.T2, 46)
-    codigo.beq(reg.T1, reg.T2, fractionLabel)
+    codigo.beq(reg.T1, reg.T2, fraccionLabel)
     
     // Convertir parte entera
     codigo.addi(reg.T1, reg.T1, -48)
@@ -189,10 +189,10 @@ export const parseFloat = (codigo) => {
     codigo.j(loopLabel)
     
     // Procesar la parte fraccionaria
-    codigo.label(fractionLabel)
+    codigo.label(fraccionLabel)
     codigo.addi(reg.A0, reg.A0, 1)
     
-    codigo.label(fractionLoopLabel)
+    codigo.label(fraccionLoopLabel)
     codigo.lb(reg.T1, reg.A0)
     codigo.beqz(reg.T1, endLabel)
     
@@ -211,7 +211,7 @@ export const parseFloat = (codigo) => {
     codigo.fadd(fr.FT0, fr.FT0, fr.FT1)
     
     codigo.addi(reg.A0, reg.A0, 1) // Avanzar al siguiente carácter
-    codigo.j(fractionLoopLabel)
+    codigo.j(fraccionLoopLabel)
     
     // Fin del parseo
     codigo.label(endLabel)
@@ -234,45 +234,107 @@ export const parseFloat = (codigo) => {
 }
 
 export const intToString = (codigo) => {
-    const isNegative = codigo.getLabel();  // Label para manejar números negativos
-    const startConversion = codigo.getLabel();  // Label para iniciar la conversión
-    const endConversion = codigo.getLabel();  // Label para finalizar la conversión
+    const endFunction = codigo.getLabel();
+    const intLoop = codigo.getLabel();
+    const negativeCase = codigo.getLabel();
+    const intReverse = codigo.getLabel()
 
-    // Verifica si el número es negativo
-    codigo.bltz(reg.A0, isNegative);
+    codigo.comentario('Inicio de intToString')
 
-    // Conversión de entero positivo a string
-    codigo.addLabel(startConversion);
+    codigo.push(reg.HP)
 
-    // Calcular el dígito menos significativo
-    codigo.li(reg.T2, 10);  // Divisor (base 10)
-    codigo.div(reg.T1, reg.A0, reg.T2);  // T1 = A0 / 10
-    codigo.rem(reg.T0, reg.A0, reg.T2);  // T0 = A0 % 10 (dígito)
+    codigo.add(reg.T1, reg.ZERO, reg.A0)
+
+     // Si es negativo, poner el signo '-'
+    codigo.bgez(reg.A0, intLoop)
+    codigo.li(reg.T2, 45)    // ASCII de '-'
+    codigo.sb(reg.T2, reg.HP)
+    codigo.addi(reg.HP, reg.HP, 1)
+    codigo.neg(reg.A0, reg.A0)   // Hacer positivo el número
+
+    codigo.addLabel(intLoop)
+    // Dividir por 10 y guardar el residuo
+    codigo.li(reg.T2, 10)
+    codigo.rem(reg.T3, reg.A0, reg.T2)    // T3 = residuo
+    codigo.div(reg.A0, reg.A0, reg.T2)    // A0 = cociente
+
+    // Convertir dígito a ASCII y guardarlo
+    codigo.addi(reg.T3, reg.T3, 48)   // ASCII '0' = 48
+    codigo.sb(reg.T3, reg.HP)
+    codigo.addi(reg.HP, reg.HP, 1)
     
-    // Convierte el dígito a ASCII
-    codigo.addi(reg.T0, reg.T0, 48);  // Convierte el número a su valor ASCII
-    codigo.sb(reg.T0, reg.HP);  // Almacena el carácter en el heap
-    codigo.addi(reg.HP, reg.HP, 1);  // Mueve el puntero del heap
+    codigo.bnez(reg.A0, intLoop)
+    
+    // Revertir los dígitos
+    codigo.add(reg.T2, reg.ZERO, reg.HP)  // T2 = fin
+    codigo.addi(reg.T2, reg.T2, -1)     // Ajustar para último dígito
+    
+    codigo.addLabel(intReverse)
+    codigo.bge(reg.T1, reg.T2, endFunction)
+    codigo.lb(reg.T3, (reg.T1))      // Cargar dígito del inicio
+    codigo.lb(reg.T4, (reg.T2))      // Cargar dígito del final
+    codigo.sb(reg.T4, (reg.T1))      // Guardar dígito del final al inicio
+    codigo.sb(reg.T3, (reg.T2))      // Guardar dígito del inicio al final
+    codigo.addi(reg.T1, reg.T1, 1)    // Mover inicio hacia adelante
+    codigo.addi(reg.T2, reg.T2, -1)   // Mover final hacia atrás
+    codigo.j(intReverse)
 
-    // Si el cociente es mayor que 0, continúa con la conversión
-    codigo.bnez(reg.T1, startConversion);
+    codigo.addLabel(endFunction)
 
-    // Finaliza la conversión
-    codigo.sb(reg.ZERO, reg.HP);  // Termina el string con un carácter nulo
-    codigo.addi(reg.HP, reg.HP, 1);
-    codigo.j(endConversion);
+    codigo.sb(reg.ZERO, reg.HP)
+    codigo.addi(reg.HP, reg.HP, 1)
 
-    // Manejo de números negativos
-    codigo.addLabel(isNegative);
-    codigo.li(reg.T0, 45);  // ASCII del signo negativo '-'
-    codigo.sb(reg.T0, reg.HP);
-    codigo.addi(reg.HP, reg.HP, 1);
-    codigo.neg(reg.A0, reg.A0);  // Convierte el número a positivo
-    codigo.j(startConversion);
+}
 
-    // Label para el final de la conversión
-    codigo.addLabel(endConversion);
-};
+
+/**
+ * 
+ * @param {Generador} codigo 
+ */
+const booleanToString = (codigo) => {
+        
+    codigo.comentario('Boolean to string')
+    
+    const falseLabel = codigo.getLabel()
+    const endLabel = codigo.getLabel()
+
+    const copiaString = codigo.getLabel()
+    const copiaStringEnd = codigo.getLabel()
+
+    codigo.push(reg.HP)
+    
+    
+    // Comprobar si es true o false
+    codigo.beqz(reg.A0, falseLabel)
+    
+    // Si es true
+    codigo.la(reg.T1, "val_true")
+    codigo.j(copiaString);
+    
+    // Si es false
+    codigo.addLabel(falseLabel);
+    codigo.la(reg.T1, "val_false")
+
+    codigo.addLabel(copiaString)
+
+    codigo.lb(reg.T2, reg.T1)
+    codigo.beqz(reg.T2, copiaStringEnd)
+    codigo.sb(reg.T2, reg.HP)
+    codigo.addi(reg.HP, reg.HP, 1)
+    codigo.addi(reg.T1, reg.T1, 1)
+    codigo.j(copiaString)
+
+    codigo.addLabel(copiaStringEnd)
+    codigo.j(endLabel)
+    
+    codigo.addLabel(endLabel)
+
+    codigo.sb(reg.ZERO, reg.HP)
+    codigo.addi(reg.HP, reg.HP, 1)
+    
+    codigo.comentario('Fin de booleanToString')
+
+}
 
 
 export const builtins = {
@@ -280,5 +342,6 @@ export const builtins = {
     intToString,
     compararString,
     parseInt,
-    parseFloat
+    parseFloat,
+    booleanToString
 }

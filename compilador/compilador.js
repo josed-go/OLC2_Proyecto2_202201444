@@ -501,6 +501,25 @@ export class CompiladorVisitor extends BaseVisitor {
                 this.codigo.pushFloat(reg.FA0)
                 this.codigo.pushObject({ tipo: "float", length: 4 })
                 break
+
+            case 'toString':
+                object = this.codigo.popObject(reg.A0)
+
+                if(object.tipo === "int") {
+                    this.codigo.callBuiltin("intToString")
+                    this.codigo.pushObject({ tipo: "string", length: 4 })
+
+                }else if(object.tipo === "float") {
+                }else if(object.tipo === "boolean") {
+
+                    this.codigo.callBuiltin("booleanToString")
+                    this.codigo.pushObject({ tipo: "string", length: 4 })
+                    
+                }else if(object.tipo === "char") {
+                }
+                // this.codigo.pushObject({ tipo: "string", length: 4 })
+
+                break
         }
 
         this.codigo.comentario(`Fin Operacion: ${node.op}`)
