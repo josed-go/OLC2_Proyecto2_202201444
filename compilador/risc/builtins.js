@@ -336,6 +336,30 @@ const booleanToString = (codigo) => {
 
 }
 
+/**
+ * 
+ * @param {Generador} codigo 
+ */
+const charToString = (codigo) => {
+    const endFunction = codigo.getLabel();
+    
+    codigo.comentario('Inicio de charToString')
+    
+    codigo.push(reg.HP)
+    
+    // Convertir el caracter a string
+    codigo.sb(reg.A0, reg.HP)
+    codigo.addi(reg.HP, reg.HP, 1)
+    
+    // Agregar el caracter nulo
+    codigo.sb(reg.ZERO, reg.HP)
+    codigo.addi(reg.HP, reg.HP, 1)
+    
+    codigo.addLabel(endFunction)
+    
+    codigo.comentario('Fin de charToString')
+}
+
 
 export const builtins = {
     concatenacionString,
@@ -343,5 +367,6 @@ export const builtins = {
     compararString,
     parseInt,
     parseFloat,
-    booleanToString
+    booleanToString,
+    charToString
 }

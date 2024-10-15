@@ -516,6 +516,8 @@ export class CompiladorVisitor extends BaseVisitor {
                     this.codigo.pushObject({ tipo: "string", length: 4 })
                     
                 }else if(object.tipo === "char") {
+                    this.codigo.callBuiltin("charToString")
+                    this.codigo.pushObject({ tipo: "string", length: 4 })
                 }
                 // this.codigo.pushObject({ tipo: "string", length: 4 })
 
