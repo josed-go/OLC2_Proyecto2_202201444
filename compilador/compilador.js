@@ -1085,28 +1085,37 @@ export class CompiladorVisitor extends BaseVisitor {
         const tipo = node.tipo
         const id = node.id
         const arrayCopia = node.exp
+        const endCopia = this.codigo.getLabel()
 
         arrayCopia.accept(this)
         const object = this.codigo.popObject(reg.T0)
 
         this.codigo.agregarArray(id, tipo, object.length / 4)
 
-        this.codigo.addi(reg.T1, reg.T1, object.length/4)
-
-        this.codigo.la(reg.T2, object.id)
+        
+        this.codigo.li(reg.T1, object.length / 4)
+        this.codigo.la(reg.T5, object.id)
         this.codigo.la(reg.T3, id)
 
+        this.codigo.comentario("Haciendo copia de array")
         const copyLoop = this.codigo.addLabel()
 
-        this.codigo.lw(reg.T4, reg.T2, 0)
+        this.codigo.lw(reg.T4, reg.T5, 0)
         this.codigo.sw(reg.T4, reg.T3, 0)
-        this.codigo.addi(reg.T2, reg.T2, 4)
+        this.codigo.addi(reg.T5, reg.T5, 4)
         this.codigo.addi(reg.T3, reg.T3, 4)
         this.codigo.addi(reg.T1, reg.T1, -1)
         this.codigo.bnez(reg.T1, copyLoop)
 
-        this.codigo.pushObject({ tipo, length: object.length * 4 })
+        this.codigo.comentario("Fin copia de array")
+        // this.codigo.j(copyLoop)
+
+        this.codigo.pushObject({ tipo, length: object.length })
         this.codigo.tagObject(id)
+
+        // this.codigo.j(endCopia)
+        // this.codigo.addLabel(endCopia)
+
 
         this.codigo.comentario(`Fin Declaracion Array: ${id}`)
     }
