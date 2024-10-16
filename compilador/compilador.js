@@ -1252,4 +1252,29 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.comentario(`Fin ForEach`)
     }
 
+    /**
+    * @type { BaseVisitor['visitTernario'] }
+    */
+    visitTernario(node) {
+        this.codigo.comentario(`Ternario`)
+        node.cond.accept(this)
+        this.codigo.popObject(reg.T0)
+
+        const verdadero = this.codigo.getLabel()
+        const falso = this.codigo.getLabel()
+        const fin = this.codigo.getLabel()
+
+        this.codigo.beq(reg.T0, reg.ZERO, falso)
+        node.exp1.accept(this)
+        this.codigo.j(fin)
+
+        this.codigo.addLabel(falso)
+        node.exp2.accept(this)
+
+        this.codigo.addLabel(fin)
+        this.codigo.comentario(`Fin Ternario`)
+
+    }
+
+
 }
