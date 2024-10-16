@@ -1129,10 +1129,95 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.comentario(`Funciones Array: ${func}`)
 
         id.accept(this)
-        const object = this.codigo.popObject(reg.T0)
+
+        const isFloat = this.codigo.getTopObject().tipo === "float"
+
+        const object = this.codigo.popObject(isFloat ? fr.FT0 : reg.T0)
 
         switch (func) {
             case "indexof":
+
+                node.exp.accept(this)
+
+                const isFloat = this.codigo.getTopObject().tipo === "float"
+
+                const exp = this.codigo.popObject( isFloat ? fr.FT1 : reg.T1)
+
+                const startLoop = this.codigo.getLabel()
+                const endLoop = this.codigo.getLabel()
+                const encontrado = this.codigo.getLabel()
+                const noEncontrado = this.codigo.getLabel()
+
+                this.codigo.la(reg.T5, object.id)
+                this.codigo.li(reg.T2, object.length / 4)
+                this.codigo.li(reg.T3, 0)
+                
+                this.codigo.comentario("Loop para recorrer el array")
+                if(isFloat) {
+                    this.codigo.addLabel(startLoop)
+
+                    this.codigo.beq(reg.T2, reg.ZERO, noEncontrado)
+                    this.codigo.flw(fr.FT2, reg.T5, 0)
+                    this.codigo.feq(reg.T0, fr.FT1, fr.FT2)
+
+                    this.codigo.bnez(reg.T0, encontrado)
+
+                    this.codigo.addi(reg.T5, reg.T5, 4)
+                    this.codigo.addi(reg.T3, reg.T3, 1)
+                    this.codigo.addi(reg.T2, reg.T2, -1)
+
+                    this.codigo.j(startLoop)
+    
+                    this.codigo.addLabel(encontrado)
+                    this.codigo.push(reg.T3)
+                    this.codigo.j(endLoop)
+    
+                    this.codigo.addLabel(noEncontrado)
+                    this.codigo.li(reg.T0, -1)
+                    this.codigo.push(reg.T0)
+                
+                }else {
+
+                    
+                    this.codigo.addLabel(startLoop)
+                    
+                    this.codigo.beq(reg.T2, reg.ZERO, noEncontrado)
+                    this.codigo.lw(reg.T4, reg.T5, 0)
+                    this.codigo.beq(reg.T4, reg.T1, encontrado)
+    
+                    this.codigo.addi(reg.T5, reg.T5, 4)
+                    this.codigo.addi(reg.T3, reg.T3, 1)
+                    this.codigo.addi(reg.T2, reg.T2, -1)
+                    this.codigo.j(startLoop)
+    
+                    this.codigo.addLabel(encontrado)
+                    this.codigo.push(reg.T3)
+                    this.codigo.j(endLoop)
+    
+                    this.codigo.addLabel(noEncontrado)
+                    this.codigo.li(reg.T0, -1)
+                    this.codigo.push(reg.T0)
+                    // this.codigo.j(endLoop)
+    
+                    
+                }
+                this.codigo.addLabel(endLoop)
+                this.codigo.comentario("Fin loop para recorrer el array")
+
+
+        
+
+
+                this.codigo.pushObject({ tipo: "int", length: 4 })
+                // this.codigo.lw(reg.T4, reg.T5, 0)
+                // this.codigo.sw(reg.T4, reg.T3, 0)
+                // this.codigo.addi(reg.T5, reg.T5, 4)
+                // this.codigo.addi(reg.T3, reg.T3, 4)
+                // this.codigo.addi(reg.T1, reg.T1, -1)
+                // this.codigo.bnez(reg.T0, startLoop)
+                // this.codigo.bnez(reg.T1, startLoop)
+
+
                 break
             case "join":
                 /*const startLoop = this.codigo.getLabel()
