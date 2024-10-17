@@ -48,12 +48,12 @@ export const compararString = (codigo) => {
     // Inicia el ciclo
     codigo.addLabel(loop)
     codigo.lb(reg.T1, reg.A0)
-    codigo.lb(reg.T2, reg.A1)
+    codigo.lb(reg.A2, reg.A1)
 
-    codigo.bne(reg.T1, reg.T2, notEqual)
+    codigo.bne(reg.T1, reg.A2, notEqual)
 
     codigo.beq(reg.T1, reg.ZERO, end) 
-    codigo.beq(reg.T2, reg.ZERO, end)
+    codigo.beq(reg.A2, reg.ZERO, end)
 
 
     codigo.addi(reg.A0, reg.A0, 1)
@@ -233,59 +233,6 @@ export const parseFloat = (codigo) => {
     codigo.comentario('Fin de parseFloat')
 }
 
-export const intToString = (codigo) => {
-    const endFunction = codigo.getLabel();
-    const intLoop = codigo.getLabel();
-    const negativeCase = codigo.getLabel();
-    const intReverse = codigo.getLabel()
-
-    codigo.comentario('Inicio de intToString')
-
-    codigo.push(reg.HP)
-
-    codigo.add(reg.T1, reg.ZERO, reg.A0)
-
-     // Si es negativo, poner el signo '-'
-    codigo.bgez(reg.A0, intLoop)
-    codigo.li(reg.T2, 45)    // ASCII de '-'
-    codigo.sb(reg.T2, reg.HP)
-    codigo.addi(reg.HP, reg.HP, 1)
-    codigo.neg(reg.A0, reg.A0)   // Hacer positivo el número
-
-    codigo.addLabel(intLoop)
-    // Dividir por 10 y guardar el residuo
-    codigo.li(reg.T2, 10)
-    codigo.rem(reg.T3, reg.A0, reg.T2)    // T3 = residuo
-    codigo.div(reg.A0, reg.A0, reg.T2)    // A0 = cociente
-
-    // Convertir dígito a ASCII y guardarlo
-    codigo.addi(reg.T3, reg.T3, 48)   // ASCII '0' = 48
-    codigo.sb(reg.T3, reg.HP)
-    codigo.addi(reg.HP, reg.HP, 1)
-    
-    codigo.bnez(reg.A0, intLoop)
-    
-    // Revertir los dígitos
-    codigo.add(reg.T2, reg.ZERO, reg.HP)  // T2 = fin
-    codigo.addi(reg.T2, reg.T2, -1)     // Ajustar para último dígito
-    
-    codigo.addLabel(intReverse)
-    codigo.bge(reg.T1, reg.T2, endFunction)
-    codigo.lb(reg.T3, (reg.T1))      // Cargar dígito del inicio
-    codigo.lb(reg.T4, (reg.T2))      // Cargar dígito del final
-    codigo.sb(reg.T4, (reg.T1))      // Guardar dígito del final al inicio
-    codigo.sb(reg.T3, (reg.T2))      // Guardar dígito del inicio al final
-    codigo.addi(reg.T1, reg.T1, 1)    // Mover inicio hacia adelante
-    codigo.addi(reg.T2, reg.T2, -1)   // Mover final hacia atrás
-    codigo.j(intReverse)
-
-    codigo.addLabel(endFunction)
-
-    codigo.sb(reg.ZERO, reg.HP)
-    codigo.addi(reg.HP, reg.HP, 1)
-
-}
-
 
 /**
  * 
@@ -360,6 +307,56 @@ const charToString = (codigo) => {
     codigo.comentario('Fin de charToString')
 }
 
+/**
+ * 
+ * @param {Generador} codigo 
+ */
+const intToString = (codigo) => {
+    const loopLabel = codigo.getLabel();
+    const endLabel = codigo.getLabel();
+    const negativoLabel = codigo.getLabel();
+    const copiaLabel = codigo.getLabel();
+    
+    codigo.comentario('Inicio de intToString');
+    
+    // Guardar puntero inicial en el heap
+    codigo.push(reg.HP);
+    
+    // Revisar si el número es negativo
+    codigo.bgez(reg.A0, loopLabel);
+    
+    // Si es negativo, agregar el signo '-' al heap
+    codigo.li(reg.T1, 45);  // ASCII de '-'
+    codigo.sb(reg.T1, reg.HP);
+    codigo.addi(reg.HP, reg.HP, 1);
+    codigo.neg(reg.A0, reg.A0);  // Hacer positivo el número
+    
+    // Ciclo para convertir los dígitos
+    codigo.label(loopLabel);
+    codigo.li(reg.T2, 10);
+    codigo.rem(reg.T1, reg.A0, reg.T2);  // T1 = A0 % 10 (último dígito)
+    codigo.div(reg.A0, reg.A0, reg.T2);  // A0 = A0 / 10 (parte entera)
+    codigo.addi(reg.T1, reg.T1, 48);  // Convertir el dígito a ASCII
+    
+    // Guardamos el dígito en la pila
+    codigo.addi(reg.SP, reg.SP, -1);
+    codigo.sb(reg.T1, reg.SP);
+    
+    codigo.bnez(reg.A0, loopLabel);  // Si A0 no es cero, repetimos el ciclo
+    
+    // Copiar los dígitos de la pila al heap
+    codigo.label(copiaLabel);
+    codigo.lb(reg.T1, reg.SP);
+    codigo.sb(reg.T1, reg.HP);
+    codigo.addi(reg.HP, reg.HP, 1);
+    codigo.addi(reg.SP, reg.SP, 1);
+    codigo.bne(reg.T1, reg.ZERO, copiaLabel);
+    
+    // Finalizar la cadena con un 0 nulo (ya añadido en el último ciclo)
+    codigo.addi(reg.HP, reg.HP, -1);  // Retroceder para sobrescribir el último 0
+    
+    codigo.comentario('Fin de intToString');
+};
 
 export const builtins = {
     concatenacionString,
