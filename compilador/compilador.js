@@ -136,6 +136,7 @@ export class CompiladorVisitor extends BaseVisitor {
                     this.codigo.add(reg.A0, reg.ZERO, reg.T1)
                     this.codigo.add(reg.A1, reg.ZERO, reg.T0)
                     this.codigo.callBuiltin("compararString")
+                    this.codigo.push(reg.T0) // REVISAR
                     this.codigo.pushObject({ tipo: "boolean", length: 4})
 
                     this.codigo.comentario(`Fin Operacion: ${node.op}`)
@@ -1172,6 +1173,35 @@ export class CompiladorVisitor extends BaseVisitor {
                     this.codigo.push(reg.T3)
                     this.codigo.j(endLoop)
     
+                    this.codigo.addLabel(noEncontrado)
+                    this.codigo.li(reg.T0, -1)
+                    this.codigo.push(reg.T0)
+                
+                }else if (object.tipo == "string"){
+
+                    this.codigo.add(reg.A0, reg.ZERO, reg.T1)
+                    
+                    this.codigo.addLabel(startLoop)
+
+                    this.codigo.beq(reg.T2, reg.ZERO, noEncontrado)
+                    this.codigo.lw(reg.T4, reg.T5, 0)
+
+                    this.codigo.add(reg.A1, reg.ZERO, reg.T4)
+
+                    this.codigo.callBuiltin("compararString")
+                    // this.codigo.push(reg.T0)
+                    this.codigo.li(reg.T4, 1)
+                    this.codigo.beq(reg.T0, reg.T4, encontrado)
+
+                    this.codigo.addi(reg.T5, reg.T5, 4)
+                    this.codigo.addi(reg.T3, reg.T3, 1)
+                    this.codigo.addi(reg.T2, reg.T2, -1)
+                    this.codigo.j(startLoop)
+
+                    this.codigo.addLabel(encontrado)
+                    this.codigo.push(reg.T3)
+                    this.codigo.j(endLoop)
+
                     this.codigo.addLabel(noEncontrado)
                     this.codigo.li(reg.T0, -1)
                     this.codigo.push(reg.T0)
