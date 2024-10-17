@@ -311,52 +311,137 @@ const charToString = (codigo) => {
  * 
  * @param {Generador} codigo 
  */
-const intToString = (codigo) => {
-    const loopLabel = codigo.getLabel();
-    const endLabel = codigo.getLabel();
-    const negativoLabel = codigo.getLabel();
-    const copiaLabel = codigo.getLabel();
+export const intToString = (codigo) => {
+
+    /*
+        stringAddress = hp
+
+		// check if the number is negative
+		if(param >= 0) goto positive
+		param = param * -1
+		heap[hp] = 45 // "-"
+		hp = hp + 1
+		positive:
+
+		if param != 0 goto next
+		// if the number is 0, just print "0"
+		heap[hp] = 48 // "0"
+		hp = hp + 1
+		heap[hp] = 0
+		hp = hp + 1
+		goto end
+
+		next:
+		// get the last address of the string
+		stringFinalAddress = hp - 1
+		aux = param
+		last:
+		if aux == 0 goto lastEnd:
+		aux = aux / 10
+		aux = (int) aux
+		stringFinalAddress = stringFinalAddress + 1
+		goto last
+		lastEnd:
+
+		hp = stringFinalAddress + 1
+
+		// convert the number to string
+		convert:
+		if(param == 0) goto endConvert
+		aux = param % 10
+		aux = aux + 48
+		heap[stringFinalAddress] = aux
+		stringFinalAddress = stringFinalAddress - 1
+		param = param / 10
+		param = (int) param
+		goto convert
+		endConvert:
+
+		heap[hp] = 0
+		hp = hp + 1
+
+		end:
+		param = stringAddress
+    */ 
+
+    const positive = codigo.getLabel()
+    const next = codigo.getLabel()
+    const end = codigo.getLabel()
+    const last = codigo.getLabel()
+    const lastEnd = codigo.getLabel()
+    const convert = codigo.getLabel()
+    const endConvert = codigo.getLabel()
     
-    codigo.comentario('Inicio de intToString');
+    codigo.comentario('Inicio de intToString')
     
-    // Guardar puntero inicial en el heap
-    codigo.push(reg.HP);
+    // Guardar la dirección inicial del string
+    codigo.push(reg.HP)
     
-    // Revisar si el número es negativo
-    codigo.bgez(reg.A0, loopLabel);
+    // Verificar si el número es negativo
+    codigo.bgez(reg.A0, positive)
     
-    // Si es negativo, agregar el signo '-' al heap
-    codigo.li(reg.T1, 45);  // ASCII de '-'
-    codigo.sb(reg.T1, reg.HP);
-    codigo.addi(reg.HP, reg.HP, 1);
-    codigo.neg(reg.A0, reg.A0);  // Hacer positivo el número
+    // Si es negativo, multiplicar por -1 y agregar el signo
+    codigo.sub(reg.A0, reg.ZERO, reg.A0)
+    codigo.li(reg.T1, 45)  // Carácter "-"
+    codigo.sb(reg.T1, reg.HP)
+    codigo.addi(reg.HP, reg.HP, 1)
     
-    // Ciclo para convertir los dígitos
-    codigo.label(loopLabel);
-    codigo.li(reg.T2, 10);
-    codigo.rem(reg.T1, reg.A0, reg.T2);  // T1 = A0 % 10 (último dígito)
-    codigo.div(reg.A0, reg.A0, reg.T2);  // A0 = A0 / 10 (parte entera)
-    codigo.addi(reg.T1, reg.T1, 48);  // Convertir el dígito a ASCII
+    // Si es positivo, continuar
+    codigo.addLabel(positive)
     
-    // Guardamos el dígito en la pila
-    codigo.addi(reg.SP, reg.SP, -1);
-    codigo.sb(reg.T1, reg.SP);
+    // Verificar si el número es 0
+    codigo.bnez(reg.A0, next)
     
-    codigo.bnez(reg.A0, loopLabel);  // Si A0 no es cero, repetimos el ciclo
+    // Si es 0, solo escribir "0" y terminar
+    codigo.li(reg.T1, 48)  // Carácter "0"
+    codigo.sb(reg.T1, reg.HP)
+    codigo.addi(reg.HP, reg.HP, 1)
+    codigo.sb(reg.ZERO, reg.HP)
+    codigo.addi(reg.HP, reg.HP, 1)
+    codigo.j(end)
     
-    // Copiar los dígitos de la pila al heap
-    codigo.label(copiaLabel);
-    codigo.lb(reg.T1, reg.SP);
-    codigo.sb(reg.T1, reg.HP);
-    codigo.addi(reg.HP, reg.HP, 1);
-    codigo.addi(reg.SP, reg.SP, 1);
-    codigo.bne(reg.T1, reg.ZERO, copiaLabel);
+    // Obtener la dirección final del string
+    codigo.addLabel(next)
+    codigo.mv(reg.T1, reg.A0)  // Guardar param en T1 (aux)
+    codigo.addi(reg.T2, reg.HP, -1)  // stringFinalAddress en T2
     
-    // Finalizar la cadena con un 0 nulo (ya añadido en el último ciclo)
-    codigo.addi(reg.HP, reg.HP, -1);  // Retroceder para sobrescribir el último 0
+    // Calcular cuántos dígitos tiene el número
+    codigo.addLabel(last)
+    codigo.beqz(reg.T1, lastEnd)
+    codigo.li(reg.T3, 10)
+    codigo.div(reg.T1, reg.T1, reg.T3)
+    codigo.addi(reg.T2, reg.T2, 1)
+    codigo.j(last)
     
-    codigo.comentario('Fin de intToString');
-};
+    // Preparar para la conversión
+    codigo.addLabel(lastEnd)
+    codigo.addi(reg.HP, reg.T2, 1)
+    
+    // Convertir el número a string
+    codigo.addLabel(convert)
+    codigo.beqz(reg.A0, endConvert)
+    
+    // Obtener el último dígito
+    codigo.li(reg.T3, 10)
+    codigo.rem(reg.T1, reg.A0, reg.T3)  // aux = param % 10
+    codigo.addi(reg.T1, reg.T1, 48)     // aux = aux + 48
+    codigo.sb(reg.T1, reg.T2)           // heap[stringFinalAddress] = aux
+    
+    // Actualizar índices y continuar
+    codigo.addi(reg.T2, reg.T2, -1)     // stringFinalAddress--
+    codigo.div(reg.A0, reg.A0, reg.T3)  // param = param / 10
+    codigo.j(convert)
+    
+    // Finalizar la conversión
+    codigo.addLabel(endConvert)
+    codigo.sb(reg.ZERO, reg.HP)
+    codigo.addi(reg.HP, reg.HP, 1)
+    
+    codigo.addLabel(end)
+    
+    codigo.comentario('Fin de intToString')
+}
+
 
 export const builtins = {
     concatenacionString,

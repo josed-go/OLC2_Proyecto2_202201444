@@ -45,12 +45,24 @@ export class Generador {
         this.instrucciones.push(new Instruccion("div", rd, rs1, rs2))
     }
 
+    divu(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion("divu", rd, rs1, rs2))
+    }
+
     addi(rd, rs1, inm) {
         this.instrucciones.push(new Instruccion("addi", rd, rs1, inm))
     }
 
     rem(rd, rs1, rs2) {
         this.instrucciones.push(new Instruccion("rem", rd, rs1, rs2))
+    }
+
+    remu(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion("remu", rd, rs1, rs2))
+    }
+
+    lbu(rd, rs1, inm=0) {
+        this.instrucciones.push(new Instruccion("lbu", rd, `${inm}(${rs1})`))
     }
 
     xor(rd, rs1, rs2) {
@@ -75,6 +87,10 @@ export class Generador {
 
     slli(rd, rs1, inm) {
         this.instrucciones.push(new Instruccion("slli", rd, rs1, inm))
+    }
+
+    srli(rd, rs1, inm) {
+        this.instrucciones.push(new Instruccion("srli", rd, rs1, inm))
     }
 
     bne(rs1, rs2, label) {
