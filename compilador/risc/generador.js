@@ -338,6 +338,13 @@ export class Generador {
         }
     }
 
+    printNull(rd = reg.A0) {
+        this.la(reg.A0, "val_null")
+        this.li(reg.A7, 4)
+        this.ecall()
+    }
+
+
     endProgram() {
         this.li(reg.A7, 10)
         this.ecall()
@@ -549,7 +556,8 @@ export class Generador {
     val_string: .string "string"
     val_bool: .string "boolean"
     val_char: .string "char"
-    val_coma: .string ","\nheap:\n.text\n
+    val_coma: .string ","
+    val_null: .asciz "null"\nheap:\n.text\n
 # Inicializando el Heap Pointer (HP)
 la ${reg.HP}, heap
 main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`

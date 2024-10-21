@@ -567,6 +567,8 @@ export class CompiladorVisitor extends BaseVisitor {
                 this.codigo.printChar()
             }else if(object.tipo === "float") {
                 this.codigo.printFloat()
+            }else if(object.tipo === "null") {
+                this.codigo.printNull()
             }
             this.codigo.espacio()
         })
@@ -607,6 +609,12 @@ export class CompiladorVisitor extends BaseVisitor {
     */
     visitDeclaracionVarTipo(node) {
         this.codigo.comentario(`Declaracion variable: ${node.id}`)
+
+        if(node.exp == undefined){
+            this.codigo.pushObject({ tipo: "null", length: 4 })
+            this.codigo.tagObject(node.id)
+            return
+        }
 
         if(this.dentroFuncion) {
             const localObject = this.codigo.getFrameLocal(this.frameDclIndex)
@@ -823,6 +831,9 @@ export class CompiladorVisitor extends BaseVisitor {
     */
     visitIf(node) {
         this.codigo.comentario(`If`)
+        const endIf = this.codigo.getLabel()
+        // const prevReturn = this.returnLabel
+        // this.returnLabel = endIf
 
         this.codigo.comentario(`Condicion`)
         node.cond.accept(this)
@@ -834,7 +845,7 @@ export class CompiladorVisitor extends BaseVisitor {
 
         if(tieneElse) {
             const elseLabel = this.codigo.getLabel()
-            const endIf = this.codigo.getLabel()
+            // const endIf = this.codigo.getLabel()
 
             this.codigo.beq(reg.T0, reg.ZERO, elseLabel)
             this.codigo.comentario("Sentencias verdadera")
@@ -845,13 +856,15 @@ export class CompiladorVisitor extends BaseVisitor {
             node.sentF.accept(this)
             this.codigo.addLabel(endIf)
         }else {
-            const endIf = this.codigo.getLabel()
+            // const endIf = this.codigo.getLabel()
 
             this.codigo.beq(reg.T0, reg.ZERO, endIf)
             this.codigo.comentario("Sentencias verdadera")
             node.sent.accept(this)
             this.codigo.addLabel(endIf)
         }
+
+        // this.returnLabel = prevReturn
 
         
         this.codigo.comentario(`Fin If`)
