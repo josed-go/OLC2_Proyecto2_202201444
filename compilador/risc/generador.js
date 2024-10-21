@@ -342,6 +342,8 @@ export class Generador {
         this.la(reg.A0, "val_null")
         this.li(reg.A7, 4)
         this.ecall()
+
+        this.pop(reg.A0)
     }
 
 
