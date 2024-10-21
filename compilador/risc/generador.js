@@ -27,6 +27,7 @@ export class Generador {
         this.contLabel = 0
         this._usedBuiltins = new Set()
         this.arrayCount = []
+        this.funcInstrucciones = []
     }
 
     add(rd, rs1, rs2) {
@@ -167,6 +168,10 @@ export class Generador {
 
     jal(label) {
         this.instrucciones.push(new Instruccion('jal', label))
+    }
+
+    jalr(rd, rs1, inm) {
+        this.instrucciones.push(new Instruccion('jalr', rd, rs1, inm))
     }
 
     ret() {
@@ -504,6 +509,11 @@ export class Generador {
         throw new Error(`Variable ${id} no encontrada`)
     }
 
+    getFrameLocal(index) {
+        const frameRelLocal = this.stackObject.filter(object => object.tipo === 'local')
+        return frameRelLocal[index]
+    }
+
     saltoLinea(){
         this.li(reg.A0, 10)
         this.li(reg.A7, 11)
@@ -521,6 +531,11 @@ export class Generador {
         this.endProgram()
         this.comentario("Builtins")
 
+        this.comentario("Funciones")
+        this.funcInstrucciones.forEach(instruccion => {
+            this.instrucciones.push(instruccion)
+        })
+
         Array.from(this._usedBuiltins).forEach(builtin => {
             this.addLabel(builtin)
             builtins[builtin](this)
@@ -533,7 +548,8 @@ export class Generador {
     val_int: .string "int"
     val_string: .string "string"
     val_bool: .string "boolean"
-    val_char: .string "char"\nheap:\n.text\n
+    val_char: .string "char"
+    val_coma: .string ","\nheap:\n.text\n
 # Inicializando el Heap Pointer (HP)
 la ${reg.HP}, heap
 main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`
@@ -559,6 +575,10 @@ main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`
 
     fli(rd, inmediato) {
         this.instrucciones.push(new Instruccion('fli.s', rd, inmediato))
+    }
+
+    fld(rd, rs1, inmediato = 0) {
+        this.instrucciones.push(new Instruccion('fld', rd, `${inmediato}(${rs1})`))
     }
 
     fmvs(rd, rs1) {
@@ -592,6 +612,10 @@ main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`
 
     fcvtsw(rd, rs1) {
         this.instrucciones.push(new Instruccion('fcvt.s.w', rd, rs1))
+    }
+
+    fcvtws(rd, rs1) {
+        this.instrucciones.push(new Instruccion('fcvt.w.s', rd, rs1))
     }
 
     fneg(rd, rs1) {

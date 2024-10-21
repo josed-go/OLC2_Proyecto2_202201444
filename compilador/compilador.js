@@ -1,4 +1,5 @@
-import nodos from "./nodos.js";
+import { FrameVisitor } from "./frame.js";
+import nodos, { ReferenciaVar } from "./nodos.js";
 import { Generador } from "./risc/generador.js";
 import { registers as reg, floatRegisters as fr } from "./risc/registros.js";
 import { stringToLower, valorPorDefecto } from "./risc/utilidades.js";
@@ -11,6 +12,10 @@ export class CompiladorVisitor extends BaseVisitor {
         this.sentEscapeCounter = []
         this.continueLabel = null
         this.breakLabel = null
+        this.returnLabel = null
+        this.funcData = []
+        this.dentroFuncion = false
+        this.frameDclIndex = 0
     }
 
     /**
@@ -504,13 +509,16 @@ export class CompiladorVisitor extends BaseVisitor {
                 break
 
             case 'toString':
-                object = this.codigo.popObject(reg.A0)
+                const isFloatS = this.codigo.getTopObject().tipo === "float"
+                object = this.codigo.popObject(isFloatS ? fr.FA0 : reg.A0)
 
                 if(object.tipo === "int") {
                     this.codigo.callBuiltin("intToString")
                     this.codigo.pushObject({ tipo: "string", length: 4 })
 
                 }else if(object.tipo === "float") {
+                    this.codigo.callBuiltin("floatToString")
+                    this.codigo.pushObject({ tipo: "string", length: 4 })
                 }else if(object.tipo === "boolean") {
 
                     this.codigo.callBuiltin("booleanToString")
@@ -574,6 +582,20 @@ export class CompiladorVisitor extends BaseVisitor {
     visitDeclaracionVar(node) {
         this.codigo.comentario(`Declaracion variable: ${node.id}`)
 
+        if(this.dentroFuncion) {
+            const localObject = this.codigo.getFrameLocal(this.frameDclIndex)
+            const valueObject = this.codigo.popObject(reg.T0)
+
+            this.codigo.addi(reg.T1, reg.FP, -localObject.offset * 4)
+
+            this.codigo.sw(reg.T0, reg.T1)
+
+            localObject.tipo = valueObject.tipo
+            this.frameDclIndex++
+
+            return
+        }
+
         node.exp.accept(this)
         this.codigo.tagObject(node.id)
 
@@ -585,6 +607,20 @@ export class CompiladorVisitor extends BaseVisitor {
     */
     visitDeclaracionVarTipo(node) {
         this.codigo.comentario(`Declaracion variable: ${node.id}`)
+
+        if(this.dentroFuncion) {
+            const localObject = this.codigo.getFrameLocal(this.frameDclIndex)
+            const valueObject = this.codigo.popObject(reg.T0)
+
+            this.codigo.addi(reg.T1, reg.FP, -localObject.offset * 4)
+
+            this.codigo.sw(reg.T0, reg.T1)
+
+            localObject.tipo = valueObject.tipo
+            this.frameDclIndex++
+
+            return
+        }
 
         node.exp.accept(this)
         this.codigo.tagObject(node.id)
@@ -679,10 +715,19 @@ export class CompiladorVisitor extends BaseVisitor {
 
             const valueObject = this.codigo.popObject(reg.T0)
             const [offset, variableO] = this.codigo.getObject(node.id)
+
+            if(this.dentroFuncion) {
+                this.codigo.addi(reg.T1, reg.FP, -variableO.offset * 4)
+                this.codigo.sw(reg.T0, reg.T1)
+
+                return
+            }
     
             this.codigo.addi(reg.T1, reg.SP, offset)
     
             this.codigo.sw(reg.T0, reg.T1)
+
+            variableO.tipo = valueObject.tipo
     
             this.codigo.push(reg.T0)
     
@@ -734,6 +779,14 @@ export class CompiladorVisitor extends BaseVisitor {
             }
         }else {
             const [offset, variableO] = this.codigo.getObject(node.id)
+
+            if(this.dentroFuncion) {
+                this.codigo.addi(reg.T1, reg.FP, -variableO.offset * 4)
+                this.codigo.lw(reg.T0, reg.T1)
+                this.codigo.push(reg.T0)
+                this.codigo.pushObject({...variableO, id: node.id})
+                return
+            }
     
             this.codigo.addi(reg.T1, reg.SP, offset)
             this.codigo.lw(reg.T0, reg.T1)
@@ -996,7 +1049,20 @@ export class CompiladorVisitor extends BaseVisitor {
      * @type { BaseVisitor['visitReturn'] }
      */
     visitReturn(node) {
-        this.codigo.comentario(`Return`)
+        this.codigo.comentario(`Inicio Return`)
+
+        if(node.exp) {
+            node.exp.accept(this)
+            this.codigo.popObject(reg.A0)
+        
+            const frameSize = this.funcData[this.dentroFuncion].frameSize
+            const returnOffset = frameSize - 1
+            this.codigo.addi(reg.T0, reg.FP, -returnOffset * 4)
+            this.codigo.sw(reg.A0, reg.T0)
+        }
+
+        this.codigo.j(this.returnLabel)
+
         this.codigo.comentario(`Fin Return`)
     }
 
@@ -1250,49 +1316,36 @@ export class CompiladorVisitor extends BaseVisitor {
 
                 break
             case "join":
-                /*const startLoop = this.codigo.getLabel()
-                const endLoop = this.codigo.getLabel()
-                const skipComa = this.codigo.getLabel()
-    
-                const longitud = object.length / 4
-            
-                this.codigo.li(reg.T4, 0)
-                this.codigo.li(reg.T2, longitud)
-            
+                /*this.codigo.li(reg.T1, object.length / 4)
                 this.codigo.la(reg.T5, object.id)
-        
-                this.codigo.addLabel(startLoop)
-            
-                this.codigo.beq(reg.T4, reg.T2, endLoop)
-            
-                this.codigo.slli(reg.T3, reg.T4, 2)
-                
-                this.codigo.add(reg.T3, reg.T5, reg.T3)
+                this.codigo.li(reg.T3, 0)
+
+                this.codigo.comentario("Recorriendo array para concatenar")
+
+                const accesoLoop = this.codigo.addLabel()
+
+                this.codigo.bge(reg.T3, reg.T1, finJoin)
+
+                this.codigo.slli(reg.T2, reg.T3, 2)
+                this.codigo.add(reg.T3, reg.T5, reg.T2)
+
                 this.codigo.lw(reg.T0, reg.T3)
 
-                this.codigo.add(reg.A0, reg.ZERO, reg.T0)
+                if(object.tipo === "int") {
+                    this.codigo.lw(reg.A0, reg.T0)
+                    this.codigo.callBuiltin("intToString")
 
-                this.codigo.callBuiltin("intToString")
+                    this.codigo.la(reg.A1, val_coma)
 
-                this.codigo.li(reg.T1, longitud - 1)
-                this.codigo.beq(reg.T1, reg.T4, skipComa)
-                this.codigo.li(reg.T1, 44)
-                this.codigo.sb(reg.T1, reg.HP)
-                this.codigo.addi(reg.HP, reg.HP, 1)
+                    this.codigo.callBuiltin("concatString")
+                }
 
-                this.codigo.addi(reg.T4, reg.T4, 1)
-    
-                this.codigo.j(startLoop)
+                this.codigo.comentario("Fin recorrido de array")
 
-                this.codigo.addLabel(skipComa)
+                const finJoin = this.codigo.addLabel()
 
-                this.codigo.addi(reg.T4, reg.T4, 1)
-                this.codigo.j(startLoop)
 
-            
-                this.codigo.addLabel(endLoop)
                 this.codigo.pushObject({ tipo: "string", length: 4 })*/
-
 
                 break;
             case "length":
@@ -1390,6 +1443,139 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.comentario(`Fin Ternario`)
 
     }
+
+    /**
+     * @type { BaseVisitor['visitDclFunc'] }
+     */
+    visitDclFunc(node) {
+        this.codigo.comentario(`Declaracion Funcion: ${node.id}`)
+        const tamanoBase = 2
+        const paramsSize = node.params.length
+
+        const frameVisitor = new FrameVisitor(tamanoBase + paramsSize)
+
+        node.bloque.accept(frameVisitor)
+
+        const localFrame = frameVisitor.frame
+        const localSize = localFrame.length
+
+        const returnSize = 1
+
+        const totalSize = tamanoBase + paramsSize + localSize + returnSize
+
+        this.funcData[node.id] = {
+            frameSize: totalSize,
+            returnTipo: node.tipo
+        }
+
+        const instruccionPrin = this.codigo.instrucciones
+        const instruccionesDeDclFunc = []
+        this.codigo.instrucciones = instruccionesDeDclFunc
+
+        node.params.forEach((p, index) => {
+            this.codigo.pushObject({
+                id: p.id,
+                tipo: p.tipo,
+                length: 4,
+                offset: tamanoBase + index
+            })
+        })
+
+        localFrame.forEach( variable => {
+            this.codigo.pushObject({
+                ...variable,
+                length: 4,
+                tipo: 'local'
+            })
+        })
+
+        this.dentroFuncion = node.id
+        this.frameDclIndex = 0
+        this.returnLabel = this.codigo.getLabel()
+
+        this.codigo.addLabel(node.id)
+        
+        node.bloque.accept(this)
+
+        this.codigo.addLabel(this.returnLabel)
+
+        this.codigo.add(reg.T0, reg.ZERO, reg.FP)
+        this.codigo.lw(reg.RA, reg.T0)
+
+        this.codigo.jalr(reg.ZERO, reg.RA, 0)
+
+        this.codigo.comentario(`Fin Declaracion Funcion: ${node.id}`)
+
+        for(let i = 0; i < paramsSize+localSize; i++) {
+            this.codigo.stackObject.pop()
+        }
+
+        this.codigo.instrucciones = instruccionPrin
+        
+        instruccionesDeDclFunc.forEach(i => {
+            this.codigo.funcInstrucciones.push(i)
+        })
+
+
+        
+    }
+
+    /**
+     * @type { BaseVisitor['visitLlamada'] }
+     */
+    visitLlamada(node) {
+        if(!(node.callee instanceof ReferenciaVar)) return
+
+        const idFuncion = node.callee.id
+
+        this.codigo.comentario(`Llamada Funcion: ${idFuncion}`)
+
+        const returnLlamadaLbl = this.codigo.getLabel()
+
+        node.args.forEach((arg, index) => {
+            arg.accept(this)
+            this.codigo.popObject(reg.T0)
+            this.codigo.addi(reg.T1, reg.SP, -4 * (3+index)) // Revisar
+            this.codigo.sw(reg.T0, reg.T1)
+        })
+
+        this.codigo.addi(reg.T1, reg.SP, -4)
+
+        this.codigo.la(reg.T0, returnLlamadaLbl)
+        this.codigo.push(reg.T0)
+
+        this.codigo.push(reg.FP)
+        this.codigo.addi(reg.FP, reg.T1, 0)
+
+        this.codigo.addi(reg.SP, reg.SP, -(node.args.length * 4))
+
+        this.codigo.j(idFuncion)
+        this.codigo.addLabel(returnLlamadaLbl)
+
+        const frameSize = this.funcData[idFuncion].frameSize
+
+        const returnSize = frameSize - 1
+
+        this.codigo.addi(reg.T0, reg.FP, -returnSize * 4)
+        this.codigo.lw(reg.A0, reg.T0)
+
+        this.codigo.addi(reg.T0, reg.FP, -4)
+        this.codigo.lw(reg.FP, reg.T0)
+
+        this.codigo.addi(reg.SP, reg.SP, (frameSize - 1) * 4)
+
+        this.codigo.push(reg.A0)
+
+        this.codigo.pushObject({
+            tipo: this.funcData[idFuncion].returnTipo,
+            length: 4
+        })
+
+        this.codigo.comentario(`Fin Llamada Funcion: ${idFuncion}`)
+
+    }
+
+
 
 
 }
