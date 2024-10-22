@@ -14,6 +14,7 @@ const btn_errores = document.getElementById('btn-errores')
 const btn_cerrar_err = document.getElementById('btn-cerrar-err')
 const btn_cerrar_simb = document.getElementById('btn-cerrar-simbolos')
 const btn_simbolos = document.getElementById('btn-simbolos')
+const btn_descargarSalida = document.getElementById('descargar-salida')
 const p_archivos = document.getElementById('p-archivos')
 const p_reportes = document.getElementById('p-reportes')
 const p_ejecutar = document.getElementById('p-ejecutar')
@@ -55,6 +56,21 @@ const consola = monaco.editor.create(
         automaticLayout: true
     }
 )
+
+btn_descargarSalida.addEventListener('click', () => {
+    const salida = consola.getValue()
+    const nombre = prompt("Introduce el nombre del archivo de salida:")
+
+    if(nombre) {
+        const blob = new Blob([salida], { type: 'text/plain' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = nombre+'.s'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+    }
+})
 
 p_ejecutar.addEventListener('click', () => {
     const entrada = editor.getValue()
