@@ -1524,7 +1524,7 @@ export class CompiladorVisitor extends BaseVisitor {
             this.codigo.funcInstrucciones.push(i)
         })
 
-
+        this.dentroFuncion = false
         
     }
 
@@ -1540,12 +1540,15 @@ export class CompiladorVisitor extends BaseVisitor {
 
         const returnLlamadaLbl = this.codigo.getLabel()
 
+        this.codigo.addi(reg.SP, reg.SP, -4 * 2)
         node.args.forEach((arg, index) => {
             arg.accept(this)
-            this.codigo.popObject(reg.T0)
+            /*this.codigo.popObject(reg.T0)
             this.codigo.addi(reg.T1, reg.SP, -4 * (3+index)) // Revisar
-            this.codigo.sw(reg.T0, reg.T1)
+            this.codigo.sw(reg.T0, reg.T1)*/
         })
+
+        this.codigo.addi(reg.SP, reg.SP, 4*(node.args.length + 2))
 
         this.codigo.addi(reg.T1, reg.SP, -4)
 
@@ -1555,12 +1558,13 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.push(reg.FP)
         this.codigo.addi(reg.FP, reg.T1, 0)
 
-        this.codigo.addi(reg.SP, reg.SP, -(node.args.length * 4))
+        const frameSize = this.funcData[idFuncion].frameSize
+
+        this.codigo.addi(reg.SP, reg.SP, -(frameSize - 2) * 4)
 
         this.codigo.j(idFuncion)
         this.codigo.addLabel(returnLlamadaLbl)
 
-        const frameSize = this.funcData[idFuncion].frameSize
 
         const returnSize = frameSize - 1
 
@@ -1570,7 +1574,7 @@ export class CompiladorVisitor extends BaseVisitor {
         this.codigo.addi(reg.T0, reg.FP, -4)
         this.codigo.lw(reg.FP, reg.T0)
 
-        this.codigo.addi(reg.SP, reg.SP, (frameSize - 1) * 4)
+        this.codigo.addi(reg.SP, reg.SP, frameSize * 4)
 
         this.codigo.push(reg.A0)
 

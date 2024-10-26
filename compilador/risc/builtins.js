@@ -1081,6 +1081,6 @@ export const builtins = {
     parseFloat,
     booleanToString,
     charToString,
-    floatToString: floatToStringD,
+    floatToString: floatToStringA,
     joinArray
 }
