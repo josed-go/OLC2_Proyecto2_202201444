@@ -1,0 +1,130 @@
+start = _ Global* _ 
+
+Global = 
+    Struct 
+    /Declaracion 
+
+Declaracion = 
+     DclArray _ 
+    / VarDcl _ 
+    / InstanciaS 
+    / DclFunc _ 
+    / Sentencias _ 
+
+VarDcl =
+    "var" _  ID _ "=" _ Expresion _ ";"
+    / TipoDato _ ID _ ("=" _ Expresion )? _ ";"
+
+DclArray = TipoDato _ "[" _ "]" _ ID _ "=" _ ID _ ("[" _ Expresion _"]" )* _ ";"
+    / TipoDato _ "[" _ "]" _ ( _"[" _ "]" )*) _ ID _ "=" _ Expresion _ ";"
+    /  TipoDato _ ("[" _ "]" _ ( _"[" _ "]" )*) _ ID _ "=" _ "new" _ ("int"/"float"/"string"/"boolean"/"char") _ ("[" _ Expresion _"]" _ ( _"[" _ Expresion _"]" )* ) _ ";"
+
+DclFunc = (TipoDato/"void"/ID) ( _"[" _ "]")* _ ID _ "(" _ Parametros? _ ")" _ Bloque
+
+Parametros = (TipoDato/ID) ( _"[" _ "]")* _ ID _ ("," _ (TipoDato/ID) ( _"[" _ "]" )* _ ID _ )*
+
+TipoDato = "int" / "float" / "string" / "boolean" / "char"
+
+ID = [a-zA-Z_][a-zA-Z0-9_]*
+
+Struct = "struct" _ ID _ "{" _ Atributo _ Atributo* _ "}" _ ";"? _
+
+Atributo = ("int"/"float"/"string"/"boolean"/"char"/ID) _ ID _ ";" _
+
+Sentencias =
+    "System.out.println(" _ Expresion _ ( _ "," _ Expresion _ )* _ ")" _ ";"
+    / Bloque
+    / "if" _ "(" _ Expresion _")" _ Sentencias _ ( _ "else" _ Sentencias )? 
+    / "while" _ "(" _ Expresion _ ")" _ Sentencias
+    / "for" _ "(" _ ForInicio _ Expresion _ ";" _ Expresion _ ")" _ Sentencias
+    / "switch" _ "(" _ Expresion _ ")" _ "{" _ Casos* _ ( "default" _ ":" _ Declaracion* )? _ "}" _
+    / "for" _ "(" _ ("int"/"float"/"string"/"boolean"/"char") _ ID _ ":" _ ID _ ")" _ Sentencias
+    / "break" _ ";"
+    / "continue" _ ";"
+    / "return" _ Expresion? _ ";"
+    / Expresion _ ";"
+
+Bloque = "{" _ Declaracion* _ "}"
+
+ForInicio = 
+    VarDcl
+    / Expresion _ ";"
+
+Casos = "case"_ Expresion _ ":" _ Declaracion* _ 
+
+InstanciaS = ID _ ID _ "=" _ Expresion ";"? _
+
+Inst = ID _ "{"_ ( AtributoIn _ ("," _ AtributoIn )* _ ) _ "}"
+
+AtributoIn = ID _ ":" _ Expresion _ 
+
+AccederAtrib = ID _ "." _ ID _ ("." _ ID )* _ ( "=" _ Expresion )? 
+
+Expresion = 
+    Asignacion
+
+Asignacion =
+    ID _ ("[" _ Expresion _"]")*  _ "=" _ Expresion
+    / ID _ ("+="/"-=") _ Expresion
+    / Ternario
+
+
+
+Ternario = OpOR _ "?" _ OpOR _ ":" _ OpOR _
+    / OpOR
+
+OpOR = OpAND ( _ ("||") _ OpAND )*
+
+OpAND = OperadoresEqua ( _ ("&&") _ OperadoresEqua )*
+
+OperadoresEqua = OperadoresComp ( _ ("!="/"==") _ OperadoresComp )*
+
+OperadoresComp = Suma ( _ op: ("<="/"<"/">="/">") _ Suma )*
+
+Suma = Multi ( _ ("+" / "-") _ Multi )* 
+
+
+Multi = Unaria (_ ("*" / "/"/"%") _ Unaria )*
+
+Unaria = 
+    FuncArray
+    / FuncionesEmbebidas
+    / ("-"/"typeof"/"!") _ Unaria
+    / ID ("++"/"--")
+    / ID _ ("[" _ Expresion _"]" _ ( _"[" _ Expresion _"]")*
+    / AccederAtrib
+    / Llamada
+    / Dato
+
+Llamada = Dato _ ( "(" _ Args? _ ")")*
+
+Args = Expresion _ ("," _ Expresion )*
+
+FuncArray = 
+    ID _ ("[" _ Expresion _"]")* _ ".indexOf" _ "(" _ Expresion _ ")"
+    / ID _ posiciones:("[" _ v: Expresion _"]" )* _ ".join"_ "(" _ ")"
+    / ID _ ("[" _ Expresion _"]")* _ ".length"
+
+FuncionesEmbebidas = 
+    "parseInt" _ "(" _ Expresion _ ")"
+    / "parsefloat" _ "(" _ Expresion _ ")"
+    / "toString" _ "(" _ Expresion _ ")"
+    / "toLowerCase" _ "(" _ Expresion _ ")"
+    / "toUpperCase" _ "(" _ Expresion _ ")"
+    / "Object." _ "keys" _ "(" _ Expresion _ ")"
+
+Dato = 
+    [0-9]+( "." [0-9]+ )? 
+    / ("true"/"false")
+    / "'" [^'] "'"
+    / "\"" ([^"]*) "\""
+    / "(" _ Expresion _ ")"
+    / "{" _ Expresion _ "," _ Expresion _ "}" 
+    / Inst
+    / ID
+
+_ = ( Comentarios / [ \t\n\r] )*
+
+Comentarios = 
+    "//" [^\n]* 
+    / "/*" (!"*/" .)* "*/"
