@@ -116,7 +116,7 @@ p_ejecutar.addEventListener('click', () => {
             consola.setValue(compilador.codigo.toString())
         }
 
-        if(obtenerErrores() != "") {
+        if(obtenerErrores() != "" && bandera) {
             consola.setValue(consola.getValue()+'\nERRORES ENCONTRADOS\n'+ obtenerErrores())
         }
     } catch (error) {

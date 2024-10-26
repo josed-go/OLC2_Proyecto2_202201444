@@ -271,11 +271,35 @@ export class Generador {
     }
 
     printInt(rd = reg.A0) {
+        const lblError = this.getLabel()
+        const lblEnd = this.getLabel()
+        const lblEndd = this.getLabel()
 
         if(rd !== reg.A0) {
             this.push(reg.A0)
             this.add(reg.A0, rd, reg.ZERO)
         }
+
+
+        this.li(reg.A2, -99)
+
+        this.beq(reg.A0, reg.A2, lblError)
+
+        this.j(lblEnd)
+
+        this.addLabel(lblError)
+        this.la(reg.A0, "val_null")
+        this.li(reg.A7, 4)
+        this.ecall()
+        
+        this.pop(reg.A0)
+        this.saltoLinea()
+
+        this.j(lblEndd)
+
+        this.comentario("Fin de impresión de error")
+
+        this.addLabel(lblEnd)
 
         this.li(reg.A7, 1)
         this.ecall()
@@ -283,6 +307,8 @@ export class Generador {
         if(rd !== reg.A0) {
             this.pop(reg.A0)
         }
+
+        this.addLabel(lblEndd)
     }
 
     printBoolean(rd = reg.A0) {
@@ -372,6 +398,39 @@ export class Generador {
 
         this.addLabel(lblEnd)
             
+    }
+
+    printErrorCero() {
+        this.comentario("Imprimiendo error")
+
+        const lblError = this.getLabel()
+        const lblEnd = this.getLabel()
+
+        this.li(reg.A0, 0)
+
+        this.beq(reg.T0, reg.A0, lblError)
+
+        this.j(lblEnd)
+
+        this.addLabel(lblError)
+        this.la(reg.A0, "error")
+        this.li(reg.A7, 4)
+        this.ecall()
+        this.pop(reg.A0)
+        this.saltoLinea()
+        this.la(reg.A0, "error_cero")
+        this.li(reg.A7, 4)
+        this.ecall()
+        this.pop(reg.A0)
+        this.saltoLinea()
+
+        this.li(reg.T0, -999)
+
+        this.push(reg.T0)
+
+        this.comentario("Fin de impresión de error")
+
+        this.addLabel(lblEnd)
     }
 
 
@@ -587,7 +646,8 @@ export class Generador {
     val_char: .string "char"
     val_coma: .string ","
     val_null: .asciz "null"
-    error: .asciz "Error en tiempo de ejecución"\nheap:\n.text\n
+    error: .asciz "Error en tiempo de ejecución"
+    error_cero: .asciz "Error: No se puede dividir por cero"\nheap:\n.text\n
 # Inicializando el Heap Pointer (HP)
 la ${reg.HP}, heap
 main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`

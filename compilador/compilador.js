@@ -231,22 +231,40 @@ export class CompiladorVisitor extends BaseVisitor {
                     break
                 }
 
+                this.codigo.comentario("Validando division por cero")
+                const lblError = this.codigo.getLabel()
+                const lblEnd = this.codigo.getLabel()
+                const lblEndD = this.codigo.getLabel()
+        
+                this.codigo.li(reg.T3, 0)
+        
+                this.codigo.beq(reg.T0, reg.T3, lblError)
+        
+                this.codigo.j(lblEnd)
+        
+                this.codigo.addLabel(lblError)
+                this.codigo.la(reg.A0, "error_cero")
+                this.codigo.li(reg.A7, 4)
+                this.codigo.ecall()
+                this.codigo.pop(reg.A0)
+                this.codigo.saltoLinea()
+        
+                this.codigo.li(reg.T0, -99)
+        
+                this.codigo.push(reg.T0)
 
-                /*this.codigo.seqz(reg.A1, reg.T0)
-                this.codigo.xori(reg.A0, reg.A1, 1)
+                this.codigo.j(lblEndD)
 
-                this.codigo.printError(reg.A0)
+                this.codigo.comentario("Fin validacion division por cero")
 
-                if(getError() && valorDer == undefined) {
-                    tipo = "null"
-                    setError(false)
-                    this.codigo.li(reg.T0, 0)
-                    this.codigo.push(reg.T0)
-                    break
-                }*/
+                this.codigo.addLabel(lblEnd)
 
                 this.codigo.div(reg.T0, reg.T1, reg.T0)
                 this.codigo.push(reg.T0)
+
+                this.codigo.addLabel(lblEndD)
+
+
                 tipo = "int"
                 break
             case '%':
