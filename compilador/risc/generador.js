@@ -86,6 +86,10 @@ export class Generador {
         this.instrucciones.push(new Instruccion("slt", rd, rs1, rs2))
     }
 
+    slti(rd, rs1, inm) {
+        this.instrucciones.push(new Instruccion("slti", rd, rs1, inm))
+    }
+
     sltu(rd, rs1, rs2) {
         this.instrucciones.push(new Instruccion("sltu", rd, rs1, rs2))
     }
@@ -647,7 +651,8 @@ export class Generador {
     val_coma: .string ","
     val_null: .asciz "null"
     error: .asciz "Error en tiempo de ejecución"
-    error_cero: .asciz "Error: No se puede dividir por cero"\nheap:\n.text\n
+    error_cero: .asciz "Error: No se puede dividir por cero"
+    error_conversion: .asciz "Error: No se puede convertir ese tipo de dato"\nheap:\n.text\n
 # Inicializando el Heap Pointer (HP)
 la ${reg.HP}, heap
 main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`

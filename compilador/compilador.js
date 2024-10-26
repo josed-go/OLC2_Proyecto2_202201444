@@ -530,8 +530,32 @@ export class CompiladorVisitor extends BaseVisitor {
 
             case 'parseInt':
                 this.codigo.popObject(reg.A0)
+
+
+                /*if(object.tipo === "string") {
+                    
+                    this.codigo.comentario("Validando tipo de conversion")
+                    this.codigo.la(reg.A0, "error_conversion")
+                    this.codigo.li(reg.A7, 4)
+                    this.codigo.ecall()
+                    this.codigo.pop(reg.A0)
+                    this.codigo.saltoLinea()
+            
+                    this.codigo.li(reg.T0, -99)
+            
+                    this.codigo.push(reg.T0)
+
+                    this.codigo.j(lblEndD)
+
+                    this.codigo.comentario("Fin validacion tipo de conversion")
+                
+                }else{
+                    this.codigo.j(lblEnd)
+                }*/
+
                 this.codigo.callBuiltin("parseInt")
                 this.codigo.push(reg.A0)
+
                 this.codigo.pushObject({ tipo: "int", length: 4 })
                 break
 
