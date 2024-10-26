@@ -86,6 +86,10 @@ export class Generador {
         this.instrucciones.push(new Instruccion("slt", rd, rs1, rs2))
     }
 
+    sltu(rd, rs1, rs2) {
+        this.instrucciones.push(new Instruccion("sltu", rd, rs1, rs2))
+    }
+
     slli(rd, rs1, inm) {
         this.instrucciones.push(new Instruccion("slli", rd, rs1, inm))
     }
@@ -346,6 +350,30 @@ export class Generador {
         this.pop(reg.A0)
     }
 
+    printError(rd = reg.A0) {
+        this.comentario("Imprimiendo error")
+
+        const lblError = this.getLabel()
+        const lblEnd = this.getLabel()
+
+        this.beq(reg.A0, reg.ZERO, lblError)
+
+        this.j(lblEnd)
+
+        this.addLabel(lblError)
+        this.la(reg.A0, "error")
+        this.li(reg.A7, 4)
+        this.ecall()
+        this.pop(reg.A0)
+        this.saltoLinea()
+
+
+        this.comentario("Fin de impresión de error")
+
+        this.addLabel(lblEnd)
+            
+    }
+
 
     endProgram() {
         this.li(reg.A7, 10)
@@ -394,7 +422,6 @@ export class Generador {
                 break
 
             case "boolean":
-                console.log("HEREEE", object)
                 this.li(reg.T0, object.valor ? 1 : 0)
                 this.push()
                 length = 4
@@ -559,7 +586,8 @@ export class Generador {
     val_bool: .string "boolean"
     val_char: .string "char"
     val_coma: .string ","
-    val_null: .asciz "null"\nheap:\n.text\n
+    val_null: .asciz "null"
+    error: .asciz "Error en tiempo de ejecución"\nheap:\n.text\n
 # Inicializando el Heap Pointer (HP)
 la ${reg.HP}, heap
 main:\n${this.instrucciones.map(i => `    ${i}`).join('\n')}`

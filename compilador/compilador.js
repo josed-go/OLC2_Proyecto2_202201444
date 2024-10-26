@@ -1,3 +1,4 @@
+import { getIntento } from "../index.js";
 import { FrameVisitor } from "./frame.js";
 import nodos, { ReferenciaVar } from "./nodos.js";
 import { Generador } from "./risc/generador.js";
@@ -16,6 +17,7 @@ export class CompiladorVisitor extends BaseVisitor {
         this.funcData = []
         this.dentroFuncion = false
         this.frameDclIndex = 0
+        this.errorEnEjecucion = false
     }
 
     /**
@@ -228,6 +230,20 @@ export class CompiladorVisitor extends BaseVisitor {
                     this.codigo.pushObject({ tipo: "float", length: 4 })
                     break
                 }
+
+
+                /*this.codigo.seqz(reg.A1, reg.T0)
+                this.codigo.xori(reg.A0, reg.A1, 1)
+
+                this.codigo.printError(reg.A0)
+
+                if(getError() && valorDer == undefined) {
+                    tipo = "null"
+                    setError(false)
+                    this.codigo.li(reg.T0, 0)
+                    this.codigo.push(reg.T0)
+                    break
+                }*/
 
                 this.codigo.div(reg.T0, reg.T1, reg.T0)
                 this.codigo.push(reg.T0)
@@ -1329,36 +1345,15 @@ export class CompiladorVisitor extends BaseVisitor {
 
                 break
             case "join":
-                /*this.codigo.li(reg.T1, object.length / 4)
-                this.codigo.la(reg.T5, object.id)
-                this.codigo.li(reg.T3, 0)
+                /*this.codigo.la(reg.A0, object.id)
+                this.codigo.li(reg.A1, object.length / 4)
 
-                this.codigo.comentario("Recorriendo array para concatenar")
-
-                const accesoLoop = this.codigo.addLabel()
-
-                this.codigo.bge(reg.T3, reg.T1, finJoin)
-
-                this.codigo.slli(reg.T2, reg.T3, 2)
-                this.codigo.add(reg.T3, reg.T5, reg.T2)
-
-                this.codigo.lw(reg.T0, reg.T3)
-
-                if(object.tipo === "int") {
-                    this.codigo.lw(reg.A0, reg.T0)
-                    this.codigo.callBuiltin("intToString")
-
-                    this.codigo.la(reg.A1, val_coma)
-
-                    this.codigo.callBuiltin("concatString")
-                }
-
-                this.codigo.comentario("Fin recorrido de array")
-
-                const finJoin = this.codigo.addLabel()
-
-
+                this.codigo.callBuiltin("joinArray")
+                this.codigo.push(reg.A0)
                 this.codigo.pushObject({ tipo: "string", length: 4 })*/
+                this.codigo.pushConstante({ tipo: "string", valor: getIntento() })
+
+                this.codigo.pushObject({ tipo: "string", length: 4 })
 
                 break;
             case "length":

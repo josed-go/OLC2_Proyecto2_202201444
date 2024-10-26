@@ -2,6 +2,7 @@ export const registers = {
     ZERO: 'zero',
     RA: 'ra',
     SP: 'sp',
+    S0: 's0',
     GP: 'gp',
     TP: 'tp',
     T0: 't0',

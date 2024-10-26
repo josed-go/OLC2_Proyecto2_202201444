@@ -6,7 +6,7 @@ import { ExcepcionBreak, ExcepcionContinue, ExcepcionReturn, ErrorSemantico } fr
 import nodos, { Expresion } from "../nodos.js";
 import { Invocable } from "./invocable.js";
 import { FuncionForeanea } from "./funcForeana.js";
-import { errores } from "../../index.js" 
+import { errores, setIntento } from "../../index.js" 
 
 export class IntepreteVisitor extends BaseVisitor {
 
@@ -1187,6 +1187,8 @@ export class IntepreteVisitor extends BaseVisitor {
 
                 let nuevoTexto = cadena.slice(0, -1);
                 
+                setIntento(nuevoTexto)
+
                 return { valor: nuevoTexto, tipo: "string" }
             case "length":
                 

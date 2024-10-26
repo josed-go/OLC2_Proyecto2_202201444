@@ -37,6 +37,7 @@ const filesList = []
 let currentFile = null
 export const errores = []
 export const simbolos = []
+export let intento= ""
 
 const editor = monaco.editor.create(
     document.getElementById('editor'), {
@@ -437,4 +438,12 @@ const agregarSimbolo = (simbolo) => {
     linea.textContent = simbolo.linea
     columna.textContent = simbolo.columna
     tbodySimbolos.appendChild(simboloElement)
+}
+
+export const setIntento = (valor) => {
+    intento = valor
+}
+
+export const getIntento = () => {
+    return intento
 }
