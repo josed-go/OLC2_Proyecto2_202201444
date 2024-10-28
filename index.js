@@ -75,6 +75,7 @@ btn_descargarSalida.addEventListener('click', () => {
 
 p_ejecutar.addEventListener('click', () => {
     const entrada = editor.getValue()
+    consola.setValue('')
     var err = ""
     errores.length = 0
     simbolos.length = 0
