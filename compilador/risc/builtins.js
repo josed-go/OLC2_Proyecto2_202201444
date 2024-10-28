@@ -953,122 +953,94 @@ export const floatToStringD = (codigo) => {
  * @param {Generador} codigo 
  */
 export const joinArray = (codigo) => {
-    const mainLoop = codigo.getLabel()
-    const mainEnd = codigo.getLabel()
-    const convertLoop = codigo.getLabel()
-    const convertEnd = codigo.getLabel()
-    const isNegative = codigo.getLabel()
-    const skipNegative = codigo.getLabel()
-    const skipComma = codigo.getLabel()
-    const finishNumber = codigo.getLabel()
+    codigo.comentario('Inicio de Join')
+    const inicioLabel = codigo.getLabel();
+    const endLabel = codigo.getLabel();
+    const codigoLabel = codigo.getLabel();
+    const positiveNumber = codigo.getLabel();
+    const numLoop = codigo.getLabel();
+    const continueLoop = codigo.getLabel();
+    const skipZero = codigo.getLabel();
+    const storeDigit = codigo.getLabel();
+    const endDigit = codigo.getLabel();
+
+
+    codigo.addLabel(inicioLabel);
+    codigo.beq(reg.T0, reg.T1, endLabel); 
+    codigo.lw(reg.T2, reg.T5); 
     
-    codigo.comentario('Inicio de arrayJoin')
+
+    codigo.mv(reg.T3, reg.HP); 
+    codigo.li(reg.T4, 10); 
+
+    // Verificar si el número es positivo
+    codigo.bgez(reg.T2, positiveNumber);
+    codigo.li(reg.S3, 45); 
+    codigo.sb(reg.S3, reg.HP);
+    codigo.addi(reg.HP, reg.HP, 1);
+    codigo.neg(reg.T2, reg.T2); 
+    codigo.addLabel(positiveNumber);
+
+    // Guardar una copia del número
+    codigo.mv(reg.S4, reg.T2);
+
+    // Si el número es 0, manejarlo especialmente
+    codigo.bnez(reg.S4, numLoop);
+    codigo.li(reg.S3, 48); // ASCII de '0'
+    codigo.sb(reg.S3, reg.HP);
+    codigo.addi(reg.HP, reg.HP, 1);
+    codigo.j(endDigit);
+
+    // Convertir dígitos
+    codigo.addLabel(numLoop);
+    codigo.beqz(reg.S4, continueLoop);
+    codigo.rem(reg.S3, reg.S4, reg.T4);
+    codigo.div(reg.S4, reg.S4, reg.T4);
+    codigo.addi(reg.S3, reg.S3, 48);
+    codigo.sb(reg.S3, reg.HP);
+    codigo.addi(reg.HP, reg.HP, 1);
+    codigo.j(numLoop);
+
+    codigo.addLabel(continueLoop);
     
-    // Preservar registros importantes
-    codigo.push(reg.RA)
-    codigo.push(reg.S0)  // Base del array
-    codigo.push(reg.S1)  // Tamaño del array
-    codigo.push(reg.S2)  // Contador actual
-    codigo.push(reg.S3)  // Valor temporal para división
+    // Invertir los dígitos en el lugar
+    codigo.mv(reg.S4, reg.T3);  // Inicio del número
+    codigo.addi(reg.HP, reg.HP, -1);  // Fin del número
     
-    // Inicializar registros
-    codigo.mv(reg.S0, reg.A0)  // Dirección base del array
-    codigo.mv(reg.S1, reg.A1)  // Tamaño del array
-    codigo.li(reg.S2, 0)       // Contador = 0
+    codigo.addLabel(storeDigit);
+    codigo.bge(reg.S4, reg.HP, endDigit);
+    codigo.lb(reg.S3, reg.S4);
+    codigo.lb(reg.S1, reg.HP);
+    codigo.sb(reg.S1, reg.S4);
+    codigo.sb(reg.S3, reg.HP);
+    codigo.addi(reg.S4, reg.S4, 1);
+    codigo.addi(reg.HP, reg.HP, -1);
+    codigo.j(storeDigit);
+
+    codigo.addLabel(endDigit);
+    codigo.addi(reg.HP, reg.HP, 1);
+
+    // Imprimir el número
+    codigo.mv(reg.A0, reg.T3);
+    codigo.li(reg.A7, 4);
+    codigo.ecall();
+
+    // Manejar la coma y el espacio
+    codigo.addi(reg.S3, reg.T1, -1);
+    codigo.bge(reg.T0, reg.S3, codigoLabel);
+    codigo.li(reg.A0, 44); // Coma
+    codigo.li(reg.A7, 11);
+    codigo.ecall();
+    codigo.addLabel(codigoLabel);
+
+    // Incrementar contadores y continuar el loop
+    codigo.addi(reg.T5, reg.T5, 4);
+    codigo.addi(reg.T0, reg.T0, 1);
+    codigo.j(inicioLabel);
+
+    codigo.addLabel(endLabel);
     
-    // Guardar dirección inicial del string resultado
-    codigo.push(reg.HP)
-    
-    // Loop principal para cada elemento del array
-    codigo.addLabel(mainLoop)
-    
-    // Verificar si hemos terminado
-    codigo.beq(reg.S2, reg.S1, mainEnd)
-    
-    // Cargar número actual
-    codigo.slli(reg.T0, reg.S2, 2)    // índice * 4
-    codigo.add(reg.T0, reg.S0, reg.T0) // dirección base + offset
-    codigo.lw(reg.T1, reg.T0)          // cargar número
-    
-    // Verificar si es negativo
-    codigo.bgez(reg.T1, skipNegative)
-    
-    // Si es negativo
-    codigo.li(reg.T0, 45)  // caracter '-'
-    codigo.sb(reg.T0, reg.HP)
-    codigo.addi(reg.HP, reg.HP, 1)
-    codigo.sub(reg.T1, reg.ZERO, reg.T1)  // convertir a positivo
-    
-    codigo.addLabel(skipNegative)
-    
-    // Si el número es 0
-    codigo.bnez(reg.T1, convertLoop)
-    codigo.li(reg.T0, 48)  // caracter '0'
-    codigo.sb(reg.T0, reg.HP)
-    codigo.addi(reg.HP, reg.HP, 1)
-    codigo.j(finishNumber)
-    
-    // Convertir número a string
-    // Primero encontrar el último dígito
-    codigo.mv(reg.T2, reg.HP)  // guardar posición inicial
-    codigo.mv(reg.T3, reg.T1)  // copia del número
-    
-    codigo.addLabel(convertLoop)
-    codigo.beqz(reg.T3, convertEnd)
-    codigo.li(reg.T4, 10)
-    codigo.div(reg.T3, reg.T3, reg.T4)
-    codigo.addi(reg.HP, reg.HP, 1)
-    codigo.j(convertLoop)
-    
-    codigo.addLabel(convertEnd)
-    codigo.addi(reg.HP, reg.HP, -1)
-    
-    // Ahora colocar los dígitos
-    codigo.addLabel('placeDigits')
-    codigo.beqz(reg.T1, finishNumber)
-    codigo.li(reg.T4, 10)
-    codigo.rem(reg.T3, reg.T1, reg.T4)  // obtener último dígito
-    codigo.addi(reg.T3, reg.T3, 48)     // convertir a ASCII
-    codigo.sb(reg.T3, reg.HP)
-    codigo.addi(reg.HP, reg.HP, -1)
-    codigo.div(reg.T1, reg.T1, reg.T4)
-    codigo.j('placeDigits')
-    
-    codigo.addLabel(finishNumber)
-    // Mover HP al final del número
-    codigo.addi(reg.HP, reg.T2, 1)
-    
-    // Verificar si es el último elemento para la coma
-    codigo.addi(reg.T0, reg.S1, -1)
-    codigo.beq(reg.S2, reg.T0, skipComma)
-    
-    // Agregar coma y espacio
-    codigo.li(reg.T0, 44)  // coma
-    codigo.sb(reg.T0, reg.HP)  // Usar 0(reg.HP) en lugar de reg.HP directamente
-    codigo.addi(reg.HP, reg.HP, 1)
-    codigo.li(reg.T0, 32)  // espacio
-    codigo.sb(reg.T0, reg.HP)  // Usar 0(reg.HP) en lugar de reg.HP directamente
-    codigo.addi(reg.HP, reg.HP, 1)
-    
-    codigo.addLabel(skipComma)
-    
-    // Incrementar contador y continuar
-    codigo.addi(reg.S2, reg.S2, 1)
-    codigo.j(mainLoop)
-    
-    // Finalizar string
-    codigo.addLabel(mainEnd)
-    codigo.sb(reg.ZERO, reg.HP)
-    codigo.addi(reg.HP, reg.HP, 1)
-    
-    // Restaurar registros
-    codigo.pop(reg.S3)
-    codigo.pop(reg.S2)
-    codigo.pop(reg.S1)
-    codigo.pop(reg.S0)
-    codigo.pop(reg.RA)
-    
-    codigo.comentario('Fin de arrayJoin')
+    codigo.comentario('Fin de Join')
 }
 
 

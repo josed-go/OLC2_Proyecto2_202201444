@@ -1387,16 +1387,16 @@ export class CompiladorVisitor extends BaseVisitor {
 
                 break
             case "join":
-                /*this.codigo.la(reg.A0, object.id)
-                this.codigo.li(reg.A1, object.length / 4)
-
-                this.codigo.callBuiltin("joinArray")
-                this.codigo.push(reg.A0)
-                this.codigo.pushObject({ tipo: "string", length: 4 })*/
-                this.codigo.pushConstante({ tipo: "string", valor: getIntento() })
-
-                this.codigo.pushObject({ tipo: "string", length: 4 })
-
+                this.codigo.comentario('Inicio de arrayJoin');
+                
+                this.codigo.la(reg.T5, object.id); 
+                this.codigo.li(reg.T0, 0);
+                this.codigo.li(reg.T1, object.length/4); 
+            
+                this.codigo.callBuiltin("joinArray");
+                
+                this.codigo.pushObject({type: 'join', length: 4});
+                this.codigo.comentario(`Fin de Join: ${object.id}`);
                 break;
             case "length":
                 const length = object.length / 4
